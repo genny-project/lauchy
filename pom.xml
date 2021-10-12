@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
     <groupId>life.genny</groupId>
     <artifactId>validation</artifactId>
-    <version>9.8.0</version>
+    <version>9.9.0</version>
 
   <properties>
     <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
