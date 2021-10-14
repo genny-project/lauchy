@@ -5,7 +5,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>life.genny</groupId>
-	<artifactId>validation</artifactId>
+	<artifactId>lauchy</artifactId>
 	<version>9.9.0</version>
 
 	<properties>
