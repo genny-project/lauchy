@@ -13,6 +13,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 import org.acme.kafka.streams.aggregator.model.Aggregation;
+import org.acme.kafka.streams.aggregator.model.TemperatureMeasurement;
 import org.acme.kafka.streams.aggregator.model.WeatherStation;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -48,12 +49,16 @@ public class AggregatorTest {
     KafkaProducer<Integer, WeatherStation> weatherStationsProducer;
 
     KafkaConsumer<Integer, Aggregation> weatherStationsConsumer;
+    
+    KafkaConsumer<Integer, TemperatureMeasurement> temperatureMeasurementConsumer;
 
     @BeforeEach
     public void setUp(){
         temperatureProducer = new KafkaProducer(producerProps(), new IntegerSerializer(), new StringSerializer());
         weatherStationsProducer = new KafkaProducer(producerProps(), new IntegerSerializer(), new ObjectMapperSerializer());
         weatherStationsConsumer =  new KafkaConsumer(consumerProps(), new IntegerDeserializer(), new ObjectMapperDeserializer<>(Aggregation.class));
+        temperatureMeasurementConsumer =  new KafkaConsumer(consumerProps(), new IntegerDeserializer(), new ObjectMapperDeserializer<>(TemperatureMeasurement.class));
+
     }
 
     @AfterEach
@@ -61,12 +66,15 @@ public class AggregatorTest {
         temperatureProducer.close();
         weatherStationsProducer.close();
         weatherStationsConsumer.close();
+        temperatureMeasurementConsumer.close();
     }
 
     @Test
     @Timeout(value = 30)
     public void test() {
         weatherStationsConsumer.subscribe(Collections.singletonList(TEMPERATURES_AGGREGATED_TOPIC));
+        temperatureMeasurementConsumer.subscribe(Collections.singletonList(TEMPERATURE_VALUES_TOPIC));
+
         weatherStationsProducer.send(new ProducerRecord<>(WEATHER_STATIONS_TOPIC, 1, new WeatherStation(1, "Station 1")));
         temperatureProducer.send(new ProducerRecord<>(TEMPERATURE_VALUES_TOPIC, 1,Instant.now() + ";" + "15" ));
         temperatureProducer.send(new ProducerRecord<>(TEMPERATURE_VALUES_TOPIC, 1,Instant.now() + ";" + "25" ));
@@ -77,6 +85,12 @@ public class AggregatorTest {
         Assertions.assertEquals(1, results.get(0).value().stationId);
         Assertions.assertEquals("Station 1", results.get(0).value().stationName);
         Assertions.assertEquals(20, results.get(0).value().avg);
+        
+//        List<ConsumerRecord<Integer, TemperatureMeasurement>> resultsTemp = pollTemp(temperatureMeasurementConsumer,1);
+//
+//        Assertions.assertEquals(1, resultsTemp.get(0).value().stationId);
+
+        
     }
 
     private Properties consumerProps() {
@@ -99,6 +113,17 @@ public class AggregatorTest {
         List<ConsumerRecord<Integer, Aggregation>> result = new ArrayList<>();
         while (fetched < expectedRecordCount) {
             ConsumerRecords<Integer, Aggregation> records = consumer.poll(Duration.ofSeconds(5));
+            records.forEach(result::add);
+            fetched = result.size();
+        }
+        return result;
+    }
+    
+    private List<ConsumerRecord<Integer, TemperatureMeasurement>> pollTemp(Consumer<Integer, TemperatureMeasurement> consumer, int expectedRecordCount) {
+        int fetched = 0;
+        List<ConsumerRecord<Integer, TemperatureMeasurement>> result = new ArrayList<>();
+        while (fetched < expectedRecordCount) {
+            ConsumerRecords<Integer, TemperatureMeasurement> records = consumer.poll(Duration.ofSeconds(5));
             records.forEach(result::add);
             fetched = result.size();
         }

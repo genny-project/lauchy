@@ -9,6 +9,8 @@ import java.util.Map;
 
 public class KafkaResource implements QuarkusTestResourceLifecycleManager {
 
+//    private final static DockerImageName myImage = DockerImageName.parse("strimzi/kafka:latest-kafka-2.5.0").asCompatibleSubstituteFor("confluentinc/cp-kafka");
+//    private final static KafkaContainer kafka = new KafkaContainer(myImage);
     private final static KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:5.4.3"));
 
     @Override
