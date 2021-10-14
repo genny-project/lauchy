@@ -13,7 +13,9 @@ else
   version="${1}"
 fi
 
-
+echo "project = ${project}"
+echo "org= ${org}"
+echo "version = ${version}"
 USER=`whoami`
 ./mvnw clean package -Dquarkus.container-image.build=true -DskipTests=true
 docker tag ${USER}/${project}:${version} ${org}/${project}:${version}
