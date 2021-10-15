@@ -3,16 +3,16 @@ package org.acme.kafka.streams.aggregator.model;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
-public class Attribute {
+public class Attribute2 {
 
     public int id;
     public String code;
     public String name;
 
-    public Attribute(){
+    public Attribute2(){
     }
 
-    public Attribute(int id, String code,String name){
+    public Attribute2(int id, String code,String name){
         this.id = id;
         this.code = code;
         this.name = name;

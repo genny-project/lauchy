@@ -13,7 +13,9 @@ else
   version="${1}"
 fi
 
-version=$version-native
+echo "project = ${project}"
+echo "org= ${org}"
+echo "version = ${version}"
 
 USER=`whoami`
 #./mvnw package -Pnative -Dquarkus.native.container-build=true -DskipTests=false
@@ -22,8 +24,8 @@ USER=`whoami`
 #./mvnw package -Pnative  -Dquarkus.native.container-build=true  -Dquarkus.container-image.build=true
 
 #th lots of memory)Build using Linux on an osx
-./mvnw package -Pnative  -Dquarkus.native.container-build=true  -Dquarkus.container-image.build=true
+./mvnw package -Pnative  -Dquarkus.native.container-build=true  -Dquarkus.container-image.build=true -DskipTests=true
 
 #docker build -f src/main/docker/Dockerfile.native -t ${USER}/${project}:${version} .
-docker tag ${USER}/${project}:${version} ${org}/${project}:${version}
+docker tag ${USER}/${project}:${version} ${org}/${project}:${version}-native
 docker tag ${USER}/${project}:${version} ${org}/${project}:native
