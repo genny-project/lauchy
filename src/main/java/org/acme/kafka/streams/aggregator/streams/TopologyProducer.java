@@ -154,8 +154,10 @@ public class TopologyProducer {
 												boolean regexOk =Pattern.compile(regex).matcher(answer.getValue()).matches(); 
 												if (regexOk) {
 													isAnyValid = true;
+													log.info("Regex OK! ["+answer.getValue()+"] for regex "+regex);
 													break;
 												} 
+												log.info("Regex failed! ["+answer.getValue()+"] for regex "+regex);
 											}
 											valid = isAnyValid;
 										}
