@@ -25,6 +25,8 @@ import javax.validation.Valid;
 
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.io.Serializable;
 import java.lang.invoke.MethodHandles;
 import java.security.InvalidParameterException;
@@ -58,7 +60,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @since 1.0
  */
 
-
+@RegisterForReflection
 public class Question extends CodedEntity implements Serializable {
 
 	/**

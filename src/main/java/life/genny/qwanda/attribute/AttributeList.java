@@ -28,6 +28,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 
 /**
  * AttributeList represents a set of Attributes in the Qwanda library.
@@ -47,7 +49,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  */
 
 
-
+@RegisterForReflection
 public class AttributeList implements Serializable {
 	
 	/**

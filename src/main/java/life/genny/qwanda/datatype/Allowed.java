@@ -3,6 +3,9 @@ package life.genny.qwanda.datatype;
 import java.io.Serializable;
 import java.util.Objects;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
+@RegisterForReflection
 public class Allowed implements Serializable {
 	public String code;
 	public CapabilityMode mode;

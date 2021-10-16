@@ -63,6 +63,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.models.GennyToken;
 import life.genny.qwanda.Answer;
 import life.genny.qwanda.attribute.Attribute;
@@ -74,29 +75,27 @@ import life.genny.qwanda.exception.BadDataException;
 import life.genny.qwanda.exception.DebugException;
 import life.genny.qwanda.message.QDataAnswerMessage;
 
-
-
-
-
 @ApplicationScoped
 public class TopologyProducer {
 
 	private static final Logger log = Logger.getLogger(TopologyProducer.class);
-	
+
 	@Inject
 	@RestClient
 	ApiService apiService;
-	
+
 	@Inject
 	@RestClient
 	ApiQwandaService apiQwandaService;
 
+	@ConfigProperty(name = "genny.show.values", defaultValue = "false")
+	Boolean showValues;
+
 	@ConfigProperty(name = "genny.keycloak.url", defaultValue = "https://keycloak.gada.io")
 	String baseKeycloakUrl;
-	
+
 	@ConfigProperty(name = "genny.keycloak.realm", defaultValue = "genny")
 	String keycloakRealm;
-
 
 	@ConfigProperty(name = "genny.service.username", defaultValue = "service")
 	String serviceUsername;
@@ -104,23 +103,22 @@ public class TopologyProducer {
 	@ConfigProperty(name = "genny.service.password", defaultValue = "password")
 	String servicePassword;
 
-	@ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "https://keycloak.genny.life")
+	@ConfigProperty(name = "genny.oidc.auth-server-url", defaultValue = "https://keycloak.genny.life/auth/realms/genny")
 	String keycloakUrl;
 
-	@ConfigProperty(name = "quarkus.oidc.client-id", defaultValue = "client_id")
+	@ConfigProperty(name = "genny.oidc.client-id", defaultValue = "backend")
 	String clientId;
 
-	@ConfigProperty(name = "quarkus.oidc.credentials.secret", defaultValue = "secret")
+	@ConfigProperty(name = "genny.oidc.credentials.secret", defaultValue = "secret")
 	String secret;
 
 	GennyToken serviceToken;
-	
-	
+
 //	   static public Map<String,Map<String, Attribute>> realmAttributeMap = new ConcurrentHashMap<>();
-	    static public Map<String,Map<String,BaseEntity>> defs = new ConcurrentHashMap<>();  // realm and DEF lookup
+	static public Map<String, Map<String, BaseEntity>> defs = new ConcurrentHashMap<>(); // realm and DEF lookup
 //	    static public QDataAttributeMessage attributesMsg = null;
 
-		// custom executor
+	// custom executor
 //		private static final ExecutorService executorService = Executors.newFixedThreadPool(20);
 
 //		private static HttpClient httpClient = HttpClient.newBuilder().executor(executorService)
@@ -136,15 +134,13 @@ public class TopologyProducer {
 //		//    .disableHtmlEscaping()
 //		    .setPrettyPrinting()
 //			.create();
-	
-	
+
 	// Set up serializers and deserializers, which we will use for overriding the
 	// default serdes
 	// specified above.
-	
-	 Jsonb jsonb = JsonbBuilder.create();
-	
-	
+
+	Jsonb jsonb = JsonbBuilder.create();
+
 	final Serde<String> stringSerde = Serdes.String();
 	final Serde<byte[]> byteArraySerde = Serdes.ByteArray();
 
@@ -206,11 +202,11 @@ public class TopologyProducer {
 				String msgType = json.getString("msg_type");
 				String msgDataType = json.getString("data_type");
 
-			if ("DATA_MSG".equals(msgType) && ("Answer".equals(msgDataType))) {
+				if ("DATA_MSG".equals(msgType) && ("Answer".equals(msgDataType))) {
 //					//log.info(json);
 					userToken = new GennyToken(json.getString("token"));
-					
-					//JsonObject decoded = getDecodedToken(userToken);
+
+					// JsonObject decoded = getDecodedToken(userToken);
 //					uuid = decoded.getString("sub");
 //					if (decoded.get("iss") != null) {
 //						String[] issArray = decoded.get("iss").toString().split("/");
@@ -224,7 +220,7 @@ public class TopologyProducer {
 					QDataAnswerMessage answerMsg = jsonb.fromJson(data, QDataAnswerMessage.class);
 //					userToken = new GennyToken(answerMsg.getToken());
 					if (!userToken.getToken().equals(answerMsg.getToken())) {
-						log.error("Message Token and userToken DO NOT Match for "+userToken.getEmail());
+						log.error("Message Token and userToken DO NOT Match for " + userToken.getEmail());
 						valid = false;
 					}
 //					
@@ -237,16 +233,16 @@ public class TopologyProducer {
 							valid = false;
 						} else {
 							// check source code exists
-							//JsonObject source = fetchDataFromCache(sourceCode,userToken);
-							BaseEntity sourceBe= fetchBaseEntityFromCache(answer.getSourceCode(),userToken);
-							log.info("Source = "+sourceBe.getCode()+":"+sourceBe.getName());
+							// JsonObject source = fetchDataFromCache(sourceCode,userToken);
+							BaseEntity sourceBe = fetchBaseEntityFromCache(answer.getSourceCode(), userToken);
+							log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
 							if (sourceBe != null) {
 								// Check Target exist
-							//	String targetCode = answerJson.getString("targetCode");
-								//JsonObject target= fetchDataFromCache(targetCode,userToken);
-								BaseEntity targetBe= fetchBaseEntityFromCache(answer.getTargetCode(),userToken);
+								// String targetCode = answerJson.getString("targetCode");
+								// JsonObject target= fetchDataFromCache(targetCode,userToken);
+								BaseEntity targetBe = fetchBaseEntityFromCache(answer.getTargetCode(), userToken);
 								if (targetBe != null) {
-									BaseEntity defBe = getDEF(targetBe,serviceToken);
+									BaseEntity defBe = getDEF(targetBe, serviceToken);
 									// check attribute code is allowed by targetDEF
 									if (defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
 //										// Now validate values
@@ -284,7 +280,7 @@ public class TopologyProducer {
 								}
 							} else {
 								valid = false;
-								log.error("Source " + answer.getSourceCode()+ " does not exist");
+								log.error("Source " + answer.getSourceCode() + " does not exist");
 							}
 						}
 					}
@@ -307,18 +303,25 @@ public class TopologyProducer {
 
 	@Produces
 	public Topology buildTopology() {
-		
+
+		if (showValues) {
+			log.info("service username :" + serviceUsername);
+			log.info("service password :" + servicePassword);
+			log.info("keycloakUrl      :" + keycloakUrl);
+			log.info("keycloak clientId:" + clientId);
+			log.info("keycloak secret  :" + secret);
+			log.info("keycloak realm   :" + keycloakRealm);
+		}
+
 		try {
 			serviceToken = getToken(serviceUsername, servicePassword);
 			setUpDefs(serviceToken);
 		} catch (IOException e) {
-			log.error("Cannot obtain Service Token for "+keycloakUrl+" and "+keycloakRealm);
+			log.error("Cannot obtain Service Token for " + keycloakUrl + " and " + keycloakRealm);
 		} catch (BadDataException e) {
-			log.error("Cannot set up DEFs for "+keycloakUrl+" and "+keycloakRealm);
+			log.error("Cannot set up DEFs for " + keycloakUrl + " and " + keycloakRealm);
 		}
-		
-		
-		
+
 //		ObjectMapperSerde<Attribute> qdatamessageSerde = new ObjectMapperSerde<>(Attribute.class);
 //
 		Attribute2 attribute = new Attribute2();
@@ -326,10 +329,9 @@ public class TopologyProducer {
 
 		// Read the input Kafka topic into a KStream instance.
 
-		builder.stream("data", Consumed.with(Serdes.String(), Serdes.String()))
-				.mapValues(attribute::tidy)
+		builder.stream("data", Consumed.with(Serdes.String(), Serdes.String())).mapValues(attribute::tidy)
 				.filter((k, v) -> validate(v))
-				//.peek((k, v) -> System.out.log.info("K[" + k + "] " + v))
+				// .peek((k, v) -> System.out.log.info("K[" + k + "] " + v))
 				.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
 
 //        builder
@@ -453,7 +455,7 @@ public class TopologyProducer {
 
 		return builder.build();
 	}
-	
+
 //	public static <T> T fromJson(final String json, Class clazz)
 //	{
 //	        T item = null;
@@ -510,21 +512,21 @@ public class TopologyProducer {
 //        return loadAllAttributesIntoCache(new GennyToken(token));
 //    }
 //
-    public Map<String,BaseEntity> getDefMap(final GennyToken userToken) {
-    	if ((defs == null) || (defs.isEmpty())) {
-    		// Load in Defs
-    		try {
+	public Map<String, BaseEntity> getDefMap(final GennyToken userToken) {
+		if ((defs == null) || (defs.isEmpty())) {
+			// Load in Defs
+			try {
 				setUpDefs(userToken);
 				return defs.get(userToken.getRealm());
 			} catch (BadDataException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-    	}
-    	return defs.get(userToken.getRealm());
-    }
-    
-	public BaseEntity getDEF(final BaseEntity be,final GennyToken userToken) {
+		}
+		return defs.get(userToken.getRealm());
+	}
+
+	public BaseEntity getDEF(final BaseEntity be, final GennyToken userToken) {
 		if (be == null) {
 			log.error("be param is NULL");
 			try {
@@ -544,7 +546,6 @@ public class TopologyProducer {
 			BaseEntity defBe = defs.get(userToken.getRealm()).get("DEF_PROJECT");
 			return defBe;
 		}
-
 
 		Set<EntityAttribute> newMerge = new HashSet<>();
 		List<EntityAttribute> isAs = be.findPrefixEntityAttributes("PRI_IS_");
@@ -581,7 +582,7 @@ public class TopologyProducer {
 					log.warn("getDEF -> detected non DEFy attributeCode " + ea.getAttributeCode());
 					// don't remove until we work it out...
 					try {
-						throw new DebugException("Bad DEF "+ ea.getAttributeCode());
+						throw new DebugException("Bad DEF " + ea.getAttributeCode());
 					} catch (DebugException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -599,7 +600,7 @@ public class TopologyProducer {
 
 		if (isAs.size() == 1) {
 			// Easy
-			Map<String,BaseEntity> beMapping = getDefMap(userToken);
+			Map<String, BaseEntity> beMapping = getDefMap(userToken);
 			String attrCode = isAs.get(0).getAttributeCode();
 
 			String trimedAttrCode = attrCode.substring("PRI_IS_".length());
@@ -677,46 +678,42 @@ public class TopologyProducer {
 		}
 
 	}
-   
-	
 
-	
-    public void setUpDefs(GennyToken userToken) throws BadDataException {
- 
-        SearchEntity searchBE = new SearchEntity("SBE_DEF", "DEF check")
-                .addSort("PRI_NAME", "Created", SearchEntity.Sort.ASC)
-                .addFilter("PRI_CODE", SearchEntity.StringFilter.LIKE, "DEF_%")
-                .addColumn("PRI_CODE", "Name");
+	public void setUpDefs(GennyToken userToken) throws BadDataException {
 
-        searchBE.setRealm(userToken.getRealm());
-        searchBE.setPageStart(0);
-        searchBE.setPageSize(1000);
+		SearchEntity searchBE = new SearchEntity("SBE_DEF", "DEF check")
+				.addSort("PRI_NAME", "Created", SearchEntity.Sort.ASC)
+				.addFilter("PRI_CODE", SearchEntity.StringFilter.LIKE, "DEF_%").addColumn("PRI_CODE", "Name");
 
-        List<BaseEntity> items = getBaseEntitys(searchBE,userToken);
-        // Load up RuleUtils.defs
+		searchBE.setRealm(userToken.getRealm());
+		searchBE.setPageStart(0);
+		searchBE.setPageSize(1000);
 
-        defs.put(userToken.getRealm(),new ConcurrentHashMap<String,BaseEntity>());
+		List<BaseEntity> items = getBaseEntitys(searchBE, userToken);
+		// Load up RuleUtils.defs
 
-        for (BaseEntity item : items) {
+		defs.put(userToken.getRealm(), new ConcurrentHashMap<String, BaseEntity>());
+
+		for (BaseEntity item : items) {
 //            if the item is a def appointment, then add a default datetime for the start (Mandatory)
-            if (item.getCode().equals("DEF_APPOINTMENT")){
-                Attribute attribute = new AttributeText("DFT_PRI_START_DATETIME", "Default Start Time");
-                attribute.setRealm(userToken.getRealm());
-                EntityAttribute newEA = new EntityAttribute(item, attribute, 1.0, "2021-07-28 00:00:00");
-                item.addAttribute(newEA);
+			if (item.getCode().equals("DEF_APPOINTMENT")) {
+				Attribute attribute = new AttributeText("DFT_PRI_START_DATETIME", "Default Start Time");
+				attribute.setRealm(userToken.getRealm());
+				EntityAttribute newEA = new EntityAttribute(item, attribute, 1.0, "2021-07-28 00:00:00");
+				item.addAttribute(newEA);
 
-                Optional<EntityAttribute> ea = item.findEntityAttribute("ATT_PRI_START_DATETIME");
-                if (ea.isPresent()){
-                    ea.get().setValue(true);
-                }
-            }
+				Optional<EntityAttribute> ea = item.findEntityAttribute("ATT_PRI_START_DATETIME");
+				if (ea.isPresent()) {
+					ea.get().setValue(true);
+				}
+			}
 
 //            Save the BaseEntity created
-            item.setFastAttributes(true); // make fast
-            defs.get(userToken.getRealm()).put(item.getCode(),item);
-            log.info("Saving ("+userToken.getRealm()+") DEF "+item.getCode());
-        }
-    }
+			item.setFastAttributes(true); // make fast
+			defs.get(userToken.getRealm()).put(item.getCode(), item);
+			// log.info("Saving ("+userToken.getRealm()+") DEF "+item.getCode());
+		}
+	}
 // 
 //    public Attribute getAttribute(final String attributeCode, final String token) {
 //    	GennyToken gennyToken = new GennyToken(token);
@@ -801,49 +798,49 @@ public class TopologyProducer {
 //
 //
 //	}
-	
-	public JsonObject fetchDataFromCache(final String code,final GennyToken token) {
+
+	public JsonObject fetchDataFromCache(final String code, final GennyToken token) {
 		String data = null;
 		String value = null;
 		try {
-            data = apiService.getDataFromCache(token.getRealm(),code, "Bearer "+token.getToken());
-            JsonObject json = jsonb.fromJson(data, JsonObject.class);
-            if ("ok".equalsIgnoreCase(json.getString("status"))) {
-            	value = json.getString("value");
-            	log.info(value);
-            }
-  		} catch (Exception e) {
+			data = apiService.getDataFromCache(token.getRealm(), code, "Bearer " + token.getToken());
+			JsonObject json = jsonb.fromJson(data, JsonObject.class);
+			if ("ok".equalsIgnoreCase(json.getString("status"))) {
+				value = json.getString("value");
+				// log.info(value);
+			}
+		} catch (Exception e) {
 			log.error("Failed to read cache for data" + code + ", exception:" + e.getMessage());
 			e.printStackTrace();
 		}
 		return jsonb.fromJson(value, JsonObject.class);
 	}
-	
-	public BaseEntity fetchBaseEntityFromCache(final String code,final GennyToken token) {
+
+	public BaseEntity fetchBaseEntityFromCache(final String code, final GennyToken token) {
 		String data = null;
 		String value = null;
 
-            data = apiService.getDataFromCache(token.getRealm(),code, "Bearer "+token.getToken());
-            JsonObject json = jsonb.fromJson(data, JsonObject.class);
-            if ("ok".equalsIgnoreCase(json.getString("status"))) {
-            	value = json.getString("value");
-            	log.info(value);
-            	return jsonb.fromJson(value, BaseEntity.class);
-            }
-            return null;
+		data = apiService.getDataFromCache(token.getRealm(), code, "Bearer " + token.getToken());
+		JsonObject json = jsonb.fromJson(data, JsonObject.class);
+		if ("ok".equalsIgnoreCase(json.getString("status"))) {
+			value = json.getString("value");
+			// log.info(value);
+			return jsonb.fromJson(value, BaseEntity.class);
+		}
+		return null;
 	}
-	
-	public JsonObject fetchSearchResults(final String searchBE,final GennyToken token) {
+
+	public JsonObject fetchSearchResults(final String searchBE, final GennyToken token) {
 		String data = null;
 		String value = null;
 		try {
-            data = apiQwandaService.getSearchResults(searchBE,"Bearer "+token.getToken());
-            JsonObject json = jsonb.fromJson(data, JsonObject.class);
-            if ("ok".equalsIgnoreCase(json.getString("status"))) {
-            	value = json.getString("value");
-            	log.info(value);
-            }
-  		} catch (Exception e) {
+			data = apiQwandaService.getSearchResults(searchBE, "Bearer " + token.getToken());
+			JsonObject json = jsonb.fromJson(data, JsonObject.class);
+			if ("ok".equalsIgnoreCase(json.getString("status"))) {
+				value = json.getString("value");
+				// log.info(value);
+			}
+		} catch (Exception e) {
 			log.error("Failed to get Results for search " + e.getMessage());
 			e.printStackTrace();
 		}
@@ -1223,14 +1220,14 @@ public class TopologyProducer {
 //	}
 
 	public JsonObject getDecodedToken(final String bearerToken) {
-			final String[] chunks = bearerToken.split("\\.");
-			Base64.Decoder decoder = Base64.getDecoder();
+		final String[] chunks = bearerToken.split("\\.");
+		Base64.Decoder decoder = Base64.getDecoder();
 //			String header = new String(decoder.decode(chunks[0]));
-			String payload = new String(decoder.decode(chunks[1]));
-			JsonObject json = jsonb.fromJson(payload, JsonObject.class);
-			return json;
+		String payload = new String(decoder.decode(chunks[1]));
+		JsonObject json = jsonb.fromJson(payload, JsonObject.class);
+		return json;
 	}
-	
+
 	/**
 	 * @param searchBE
 	 * @return
@@ -1240,18 +1237,20 @@ public class TopologyProducer {
 
 		try {
 			String searchJson = jsonb.toJson(searchBE);
-			String resultJsonStr = apiQwandaService.getSearchResults(searchJson, "Bearer "+serviceToken.getToken());
+			String resultJsonStr = apiQwandaService.getSearchResults(searchJson, "Bearer " + serviceToken.getToken());
 
-		//	resultJsonStr = apiPostEntity2("http://internmatch.genny.life:8280/qwanda/baseentitys/search25", searchJson, serviceToken.getToken(),null);
+			// resultJsonStr =
+			// apiPostEntity2("http://internmatch.genny.life:8280/qwanda/baseentitys/search25",
+			// searchJson, serviceToken.getToken(),null);
 			JsonObject resultJson = null;
 
 			try {
-				resultJson = jsonb.fromJson(resultJsonStr,JsonObject.class);
+				resultJson = jsonb.fromJson(resultJsonStr, JsonObject.class);
 				JsonArray result = resultJson.getJsonArray("codes");
 				int size = result.size();
 				for (int i = 0; i < size; i++) {
 					String code = result.getString(i);
-					BaseEntity be = fetchBaseEntityFromCache(code,serviceToken);
+					BaseEntity be = fetchBaseEntityFromCache(code, serviceToken);
 //					System.out.println("code:" + code + ",index:" + (i+1) + "/" + size);
 
 					be.setIndex(i);
@@ -1268,18 +1267,17 @@ public class TopologyProducer {
 		return results;
 	}
 
-	private GennyToken getToken(final String username, final String password) throws IOException
-	{
-		
-		JsonObject keycloakResponseJson = getToken(baseKeycloakUrl, keycloakRealm, clientId, secret, username, password, null);
+	private GennyToken getToken(final String username, final String password) throws IOException {
+
+		JsonObject keycloakResponseJson = getToken(baseKeycloakUrl, keycloakRealm, clientId, secret, username, password,
+				null);
 		String accessToken = keycloakResponseJson.getString("access_token");
 		GennyToken token = new GennyToken(accessToken);
 		return token;
 	}
-	
 
-
-	public JsonObject getToken(String keycloakUrl, String realm, String clientId, String secret, String username, String password, String refreshToken) throws IOException {
+	public JsonObject getToken(String keycloakUrl, String realm, String clientId, String secret, String username,
+			String password, String refreshToken) throws IOException {
 
 		HashMap<String, String> postDataParams = new HashMap<>();
 		postDataParams.put("Content-Type", "application/x-www-form-urlencoded");
@@ -1307,14 +1305,16 @@ public class TopologyProducer {
 //				refreshToken = null;
 //			}
 //		}
-		/* if we don't have a refresh token, we generate a new token using username and password */
-		if(refreshToken == null) {
+		/*
+		 * if we don't have a refresh token, we generate a new token using username and
+		 * password
+		 */
+		if (refreshToken == null) {
 			postDataParams.put("username", username);
 			postDataParams.put("password", password);
 			log.info("using username");
 			postDataParams.put("grant_type", "password");
-		}
-		else {
+		} else {
 			postDataParams.put("refresh_token", refreshToken);
 			postDataParams.put("grant_type", "refresh_token");
 			log.info("using refresh token");
@@ -1326,16 +1326,12 @@ public class TopologyProducer {
 			postDataParams.put("client_secret", secret);
 		}
 
-		
-		String requestURL = keycloakUrl+"/auth/realms/"+realm+"/protocol/openid-connect/token";
-		
-		String str = performPostCall(requestURL,
-	            postDataParams);
-		
-		
-		JsonObject json = jsonb.fromJson(str,JsonObject.class);
+		String requestURL = keycloakUrl + "/auth/realms/" + realm + "/protocol/openid-connect/token";
+
+		String str = performPostCall(requestURL, postDataParams);
+
+		JsonObject json = jsonb.fromJson(str, JsonObject.class);
 		return json;
-		
 
 	}
 
@@ -1378,7 +1374,7 @@ public class TopologyProducer {
 
 		return response;
 	}
-	
+
 	private static String getPostDataString(HashMap<String, String> params) throws UnsupportedEncodingException {
 		StringBuilder result = new StringBuilder();
 		boolean first = true;
@@ -1404,9 +1400,9 @@ public class TopologyProducer {
 
 	public static String apiPostEntity2(final String postUrl, final String entityString, final String authToken,
 			final Consumer<String> callback) throws IOException {
-		
-		Integer httpTimeout = 7;  // 7 secnds
-		
+
+		Integer httpTimeout = 7; // 7 secnds
+
 		if (StringUtils.isBlank(postUrl)) {
 			log.error("Blank url in apiPostEntity");
 		}
@@ -1414,14 +1410,12 @@ public class TopologyProducer {
 		BodyPublisher requestBody = BodyPublishers.ofString(entityString);
 
 		HttpRequest.Builder requestBuilder = HttpRequest.newBuilder().POST(requestBody).uri(URI.create(postUrl))
-				.setHeader("Content-Type", "application/json")
-				.setHeader("Authorization", "Bearer " + authToken);
+				.setHeader("Content-Type", "application/json").setHeader("Authorization", "Bearer " + authToken);
 
-		
 		if (postUrl.contains("genny.life")) { // Hack for local server not having http2
 			requestBuilder = requestBuilder.version(HttpClient.Version.HTTP_1_1);
 		}
-		
+
 		HttpRequest request = requestBuilder.build();
 
 		String result = null;
@@ -1436,7 +1430,8 @@ public class TopologyProducer {
 				done = true;
 			} catch (InterruptedException | ExecutionException | TimeoutException e) {
 				// TODO Auto-generated catch block
-				log.error("Count:" + count + ", Exception occurred when post to URL: "+ postUrl + ",Body is entityString:" + entityString + ", Exception details:"  + e.getCause() );
+				log.error("Count:" + count + ", Exception occurred when post to URL: " + postUrl
+						+ ",Body is entityString:" + entityString + ", Exception details:" + e.getCause());
 				// try renewing the httpclient
 				httpClient = HttpClient.newBuilder().executor(executorService).version(HttpClient.Version.HTTP_2)
 						.connectTimeout(Duration.ofSeconds(httpTimeout)).build();

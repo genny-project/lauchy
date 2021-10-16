@@ -13,10 +13,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.commons.lang3.StringUtils;
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.attribute.Attribute;
 import life.genny.qwanda.entity.BaseEntity;
 
-
+@RegisterForReflection
 public class AnswerLink implements java.io.Serializable {
 
 	private static final Logger log = Logger.getLogger(AnswerLink.class);

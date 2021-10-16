@@ -20,6 +20,8 @@ package life.genny.qwanda;
 import java.io.Serializable;
 import java.util.Objects;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 
 
 /**
@@ -42,7 +44,7 @@ import java.util.Objects;
  * @since 1.0
  */
 
-
+@RegisterForReflection
 public class Link implements Serializable {
 	
 	static public String RULE_PARENT_OVERRIDE = "PO";

@@ -4,10 +4,10 @@ package life.genny.qwanda.entity;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.attribute.Attribute;
 
-
+@RegisterForReflection
 public class EntityEntityId implements java.io.Serializable {
 
 	/**

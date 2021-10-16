@@ -23,8 +23,7 @@ package life.genny.qwanda.attribute;
 
 import java.io.Serializable;
 
-
-
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.datatype.DataType;
 
 
@@ -46,7 +45,7 @@ import life.genny.qwanda.datatype.DataType;
  * @since       1.0
  */
 
-
+@RegisterForReflection
 public class AttributeInteger extends Attribute implements Serializable {
 	/**
 	 * 

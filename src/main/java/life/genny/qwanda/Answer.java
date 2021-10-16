@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.attribute.Attribute;
 
 /**
@@ -44,6 +45,7 @@ import life.genny.qwanda.attribute.Attribute;
  * @since 1.0
  */
 
+@RegisterForReflection
 public class Answer implements Serializable {
 	/**
 	 * 

@@ -11,6 +11,7 @@ import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import javax.json.bind.annotation.JsonbTransient;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.EEntityStatus;
 import life.genny.qwanda.attribute.AttributeBoolean;
 import life.genny.qwanda.attribute.AttributeDate;
@@ -27,6 +28,7 @@ import life.genny.qwanda.exception.BadDataException;
 /* SearchEntity class implements the search of base entities applying different filters/search to the
  * baseEntity and its attributes
  */
+@RegisterForReflection
 public class SearchEntity extends BaseEntity {
 	/**
 	 *

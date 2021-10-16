@@ -24,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.validation.Validation;
 import life.genny.qwanda.validation.ValidationList;
 
@@ -48,7 +49,7 @@ import life.genny.qwanda.validation.ValidationList;
  * @since 1.0
  */
 
-
+@RegisterForReflection
 public class DataType implements Serializable {
 
 	/**

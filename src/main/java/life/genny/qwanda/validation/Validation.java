@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.PatternSyntaxException;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.CodedEntity;
 
 /**
@@ -45,7 +46,7 @@ import life.genny.qwanda.CodedEntity;
  * @since       1.0
  */
 
-
+@RegisterForReflection
 public class Validation extends CodedEntity implements Serializable {
 	
 	/* (non-Javadoc)

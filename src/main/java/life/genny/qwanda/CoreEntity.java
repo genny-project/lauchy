@@ -27,6 +27,8 @@ import javax.json.bind.annotation.JsonbTransient;
 
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 /**
  * CoreEntity represents a base level core set of class attributes. It is the
  * base parent for many Qwanda classes and serves to establish Hibernate
@@ -47,7 +49,7 @@ import org.jboss.logging.Logger;
  * @since 1.0
  */
 
-
+@RegisterForReflection
 public abstract class CoreEntity implements  Serializable, Comparable<Object> {
 
 	/**

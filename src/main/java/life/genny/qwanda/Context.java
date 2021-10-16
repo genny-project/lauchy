@@ -26,8 +26,7 @@ import java.io.Serializable;
 
 import org.apache.commons.lang3.builder.CompareToBuilder;
 
-
-
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.entity.BaseEntity;
 
 
@@ -56,7 +55,7 @@ import life.genny.qwanda.entity.BaseEntity;
  * @since 1.0
  */
 
-
+@RegisterForReflection
 public class Context extends CoreEntity implements Serializable {
 	/**
 	 *

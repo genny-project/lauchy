@@ -3,8 +3,10 @@ package life.genny.qwanda.message;
 import java.util.Arrays;
 import java.util.List;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.Answer;
 
+@RegisterForReflection
 public class QDataAnswerMessage extends QDataMessage {
 
 	private static final long serialVersionUID = 1L;
@@ -40,6 +42,8 @@ public class QDataAnswerMessage extends QDataMessage {
 	public void setItems(Answer[] items) {
 		this.items = items;
 	}
+	
+	
 
 	/* (non-Javadoc)
 	 * @see java.lang.Object#toString()

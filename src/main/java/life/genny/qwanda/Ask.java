@@ -31,7 +31,7 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
-
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.exception.BadDataException;
 
 
@@ -63,6 +63,7 @@ import life.genny.qwanda.exception.BadDataException;
  * @since 1.0
  */
 
+@RegisterForReflection
 public class Ask extends CoreEntity implements Serializable {
 	/**
 	 * 

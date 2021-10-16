@@ -20,6 +20,8 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 
 /**
  * ValidationList represents a set of Validations the Qwanda library. The validations in the list
@@ -38,7 +40,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @since 1.0
  */
 
-
+@RegisterForReflection
 public class ValidationList implements Serializable {
 
   /**

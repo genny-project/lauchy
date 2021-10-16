@@ -26,8 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-
-
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.datatype.DataType;
 
 
@@ -49,7 +48,7 @@ import life.genny.qwanda.datatype.DataType;
  * @since       1.0
  */
 
-
+@RegisterForReflection
 public class AttributeTime extends Attribute implements Serializable {
 	/**
 	 * 

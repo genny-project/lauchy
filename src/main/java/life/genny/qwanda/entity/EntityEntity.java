@@ -17,10 +17,11 @@ import org.apache.commons.lang3.builder.CompareToBuilder;
 import org.apache.commons.lang3.time.DateUtils;
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.Link;
 
 
-
+@RegisterForReflection
 public class EntityEntity implements java.io.Serializable, Comparable<Object> {
 
 	/**

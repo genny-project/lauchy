@@ -1,15 +1,27 @@
 package life.genny.qwanda;
 
+import javax.json.bind.annotation.JsonbTransient;
+
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.attribute.Attribute;
 import life.genny.qwanda.entity.BaseEntity;
 
+@RegisterForReflection
 public class AnswerLinkId implements java.io.Serializable {
 
 
-  private BaseEntity source;
+  /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
+	@JsonbTransient
+private BaseEntity source;
+
+	@JsonbTransient
   private BaseEntity target;
 
+	@JsonbTransient
   private Attribute attribute;
 
 

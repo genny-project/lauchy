@@ -21,11 +21,12 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.time.DateUtils;
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.entity.BaseEntity;
 
 
 
-
+@RegisterForReflection
 public class EntityAttribute implements java.io.Serializable, Comparable<Object> {
 
 	/**

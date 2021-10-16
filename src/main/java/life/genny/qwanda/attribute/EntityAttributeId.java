@@ -2,8 +2,10 @@ package life.genny.qwanda.attribute;
 
 import javax.json.bind.annotation.JsonbTransient;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.entity.BaseEntity;
 
+@RegisterForReflection
 public class EntityAttributeId implements java.io.Serializable {
 
 	/**

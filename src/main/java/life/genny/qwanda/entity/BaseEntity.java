@@ -32,6 +32,7 @@ import javax.json.bind.annotation.JsonbTransient;
 
 import org.jboss.logging.Logger;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.AnswerLink;
 import life.genny.qwanda.CodedEntity;
 import life.genny.qwanda.attribute.Attribute;
@@ -58,7 +59,7 @@ import life.genny.qwanda.exception.BadDataException;
  * @since 1.0
  */
 
-
+@RegisterForReflection
 public class BaseEntity extends CodedEntity{
 
 	/**
@@ -112,10 +113,10 @@ public class BaseEntity extends CodedEntity{
 	 * 
 	 * @param none
 	 */
-	@SuppressWarnings("unused")
-	protected BaseEntity() {
+
+	public BaseEntity() {
 		super();
-		// dummy
+
 	}
 
 	/**

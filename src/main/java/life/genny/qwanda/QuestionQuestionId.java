@@ -5,12 +5,11 @@ package life.genny.qwanda;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-
-
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.qwanda.entity.EntityEntityId;
 
 
-
+@RegisterForReflection
 public class QuestionQuestionId implements java.io.Serializable {
 
 	/**

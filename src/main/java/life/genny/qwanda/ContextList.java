@@ -23,6 +23,8 @@ package life.genny.qwanda;
 import java.io.Serializable;
 import java.util.List;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 
 
 
@@ -44,7 +46,7 @@ import java.util.List;
  */
 
 
-
+@RegisterForReflection
 public class ContextList implements Serializable {
 	
 	/**
