@@ -27,5 +27,5 @@ USER=`whoami`
 ./mvnw package -Pnative  -Dquarkus.native.container-build=true  -Dquarkus.container-image.build=true -DskipTests=true
 
 #docker build -f src/main/docker/Dockerfile.native -t ${USER}/${project}:${version} .
-docker tag ${USER}/${project}:${version} ${org}/${project}:${version}-native
-docker tag ${USER}/${project}:${version} ${org}/${project}:native
+docker tag ${org}/${project}:${version} ${org}/${project}:${version}-native
+docker tag ${org}/${project}:${version} ${org}/${project}:native
