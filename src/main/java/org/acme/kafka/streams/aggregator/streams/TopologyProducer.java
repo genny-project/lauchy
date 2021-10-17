@@ -1238,11 +1238,11 @@ public class TopologyProducer {
 
 		try {
 			String searchJson = jsonb.toJson(searchBE);
-			String resultJsonStr = null; //apiQwandaService.getSearchResults(searchJson, "Bearer " + serviceToken.getToken());
+			String resultJsonStr = apiQwandaService.getSearchResults(searchJson, "Bearer " + serviceToken.getToken());
 
-			 resultJsonStr =
-			 apiPostEntity2(apiUrl+"/qwanda/baseentitys/search25",
-			 searchJson, serviceToken.getToken(),null);
+//			 resultJsonStr =
+//			 apiPostEntity2(apiUrl+"/qwanda/baseentitys/search25",
+//			 searchJson, serviceToken.getToken(),null);
 			JsonObject resultJson = null;
 
 			try {
