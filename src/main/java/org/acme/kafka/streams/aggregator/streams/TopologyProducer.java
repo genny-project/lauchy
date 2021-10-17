@@ -16,7 +16,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublisher;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -27,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -63,7 +61,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
 
-import io.quarkus.runtime.annotations.RegisterForReflection;
 import life.genny.models.GennyToken;
 import life.genny.qwanda.Answer;
 import life.genny.qwanda.attribute.Attribute;
@@ -1312,13 +1309,18 @@ public class TopologyProducer {
 		if (refreshToken == null) {
 			postDataParams.put("username", username);
 			postDataParams.put("password", password);
-			log.info("using username");
+			if (showValues) {
+			log.info("using username "+username);
+			log.info("using password "+password);
+			}
 			postDataParams.put("grant_type", "password");
 		} else {
 			postDataParams.put("refresh_token", refreshToken);
 			postDataParams.put("grant_type", "refresh_token");
+			if (showValues) {
 			log.info("using refresh token");
 			log.info(refreshToken);
+			}
 		}
 
 		postDataParams.put("client_id", clientId);
@@ -1330,6 +1332,10 @@ public class TopologyProducer {
 
 		String str = performPostCall(requestURL, postDataParams);
 
+		if (showValues) {
+			log.info(username+" token= "+str);
+		}
+		
 		JsonObject json = jsonb.fromJson(str, JsonObject.class);
 		return json;
 
