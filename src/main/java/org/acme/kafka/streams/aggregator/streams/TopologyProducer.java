@@ -109,6 +109,9 @@ public class TopologyProducer {
 	@ConfigProperty(name = "genny.oidc.credentials.secret", defaultValue = "secret")
 	String secret;
 
+	@ConfigProperty(name = "genny.api.url", defaultValue = "http://alyson.genny.life:8280")
+	String apiUrl;
+
 	GennyToken serviceToken;
 
 //	   static public Map<String,Map<String, Attribute>> realmAttributeMap = new ConcurrentHashMap<>();
@@ -308,6 +311,7 @@ public class TopologyProducer {
 			log.info("keycloak clientId:" + clientId);
 			log.info("keycloak secret  :" + secret);
 			log.info("keycloak realm   :" + keycloakRealm);
+			log.info("api Url          :" + apiUrl);
 		}
 
 		try {
@@ -1333,6 +1337,7 @@ public class TopologyProducer {
 		String str = performPostCall(requestURL, postDataParams);
 
 		if (showValues) {
+			log.info("keycloak auth url = "+requestURL);
 			log.info(username+" token= "+str);
 		}
 		
