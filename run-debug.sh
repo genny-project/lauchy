@@ -1,5 +1,8 @@
 #!/bin/bash
 #export DDT_URL=http://internmatch.genny.life:8280
-export FORCE_CACHE_USE_API=TRUE
+export GENNY_SHOW_VALUES=TRUE
+export GENNY_SERVICE_USERNAME=adamcrow63+service@gmail.com
+export GENNY_KEYCLOAK_URL=https://keycloak-office.gada.io
+export GENNY_API_URL=http://internmatch.genny.life:8280
 ./mvnw clean quarkus:dev -Ddebug=5556
 
