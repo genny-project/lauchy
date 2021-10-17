@@ -309,7 +309,7 @@ public class TopologyProducer {
 			log.info("service password :" + servicePassword);
 			log.info("keycloakUrl      :" + keycloakUrl);
 			log.info("keycloak clientId:" + clientId);
-			log.info("keycloak secret  :" + secret);
+		//	log.info("keycloak secret  :" + secret);
 			log.info("keycloak realm   :" + keycloakRealm);
 			log.info("api Url          :" + apiUrl);
 		}
@@ -1237,17 +1237,21 @@ public class TopologyProducer {
 		List<BaseEntity> results = new ArrayList<BaseEntity>();
 
 		try {
+			log.info("creating searchJson for "+searchBE.getCode());
 			String searchJson = jsonb.toJson(searchBE);
+			log.info("Fetching baseentitys for "+searchBE.getCode());
 			String resultJsonStr = apiQwandaService.getSearchResults(searchJson, "Bearer " + serviceToken.getToken());
-
-//			 resultJsonStr =
+			
+//			 String resultJsonStr =
 //			 apiPostEntity2(apiUrl+"/qwanda/baseentitys/search25",
 //			 searchJson, serviceToken.getToken(),null);
+			log.info("Fetched baseentitys string for "+resultJsonStr);
 			JsonObject resultJson = null;
 
 			try {
 				resultJson = jsonb.fromJson(resultJsonStr, JsonObject.class);
 				JsonArray result = resultJson.getJsonArray("codes");
+				log.info("Fetched baseentitys for "+searchBE.getCode()+":"+resultJson);
 				int size = result.size();
 				for (int i = 0; i < size; i++) {
 					String code = result.getString(i);
@@ -1270,7 +1274,7 @@ public class TopologyProducer {
 
 	private GennyToken getToken(final String username, final String password) throws IOException {
 
-		JsonObject keycloakResponseJson = getToken(baseKeycloakUrl, keycloakRealm, clientId, secret, username, password,
+		JsonObject keycloakResponseJson = getToken(baseKeycloakUrl, keycloakRealm, clientId,secret, username, password,
 				null);
 		String accessToken = keycloakResponseJson.getString("access_token");
 		GennyToken token = new GennyToken(accessToken);
@@ -1316,6 +1320,8 @@ public class TopologyProducer {
 			if (showValues) {
 			log.info("using username "+username);
 			log.info("using password "+password);
+			log.info("using client_id "+clientId);
+			log.info("using client_secret "+secret);
 			}
 			postDataParams.put("grant_type", "password");
 		} else {
@@ -1328,7 +1334,7 @@ public class TopologyProducer {
 		}
 
 		postDataParams.put("client_id", clientId);
-		if (secret != null) {
+		if (!StringUtils.isBlank(secret)) {
 			postDataParams.put("client_secret", secret);
 		}
 
@@ -1412,7 +1418,9 @@ public class TopologyProducer {
 	public static String apiPostEntity2(final String postUrl, final String entityString, final String authToken,
 			final Consumer<String> callback) throws IOException {
 
-		Integer httpTimeout = 7; // 7 secnds
+		Integer httpTimeout = 7; // 7 seconds
+		
+		log.info("fetching from "+postUrl);
 
 		if (StringUtils.isBlank(postUrl)) {
 			log.error("Blank url in apiPostEntity");
@@ -1433,6 +1441,8 @@ public class TopologyProducer {
 		Boolean done = false;
 		int count = 5;
 		while ((!done) && (count > 0)) {
+//			httpClient = HttpClient.newBuilder().executor(executorService).version(HttpClient.Version.HTTP_2)
+//					.connectTimeout(Duration.ofSeconds(httpTimeout)).build();
 			CompletableFuture<java.net.http.HttpResponse<String>> response = httpClient.sendAsync(request,
 					java.net.http.HttpResponse.BodyHandlers.ofString());
 
@@ -1442,68 +1452,18 @@ public class TopologyProducer {
 			} catch (InterruptedException | ExecutionException | TimeoutException e) {
 				// TODO Auto-generated catch block
 				log.error("Count:" + count + ", Exception occurred when post to URL: " + postUrl
-						+ ",Body is entityString:" + entityString + ", Exception details:" + e.getCause());
+						+ ",Body is entityString:" + entityString + ", Exception details:" + e.getMessage());
 				// try renewing the httpclient
-				httpClient = HttpClient.newBuilder().executor(executorService).version(HttpClient.Version.HTTP_2)
-						.connectTimeout(Duration.ofSeconds(httpTimeout)).build();
 				if (count <= 0) {
 					done = true;
 				}
 			}
 			count--;
 		}
-//	        System.out.println(result);
+
 
 		return result;
 
-//        URL url;
-//        String response = "";
-//        try {
-//            url = new URL(postUrl);
-//
-//            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-//            conn.setReadTimeout(15000);
-//            conn.setConnectTimeout(15000);
-//            conn.setRequestMethod("POST");
-//            conn.setDoInput(true);
-//            conn.setDoOutput(true);
-//            
-//    		conn.addRequestProperty("Content-Type", "application/json; charset=UTF-8");
-//    		
-//    		if (authToken != null) {
-//    			conn.addRequestProperty("Authorization", "Bearer " + authToken); // Authorization": `Bearer
-//    		}
-//
-//			StringEntity postEntity = new StringEntity(entityString, "UTF-8");
-////			getPostDataString(postDataParams)
-//    		
-//            OutputStream os = conn.getOutputStream();
-//            BufferedWriter writer = new BufferedWriter(
-//                    new OutputStreamWriter(os, "UTF-8"));
-//            //getPostDataString(postDataParams)
-//            writer.write(postEntity.toString());
-//
-//            writer.flush();
-//            writer.close();
-//            os.close();
-//            int responseCode=conn.getResponseCode();
-//
-//            if (responseCode == HttpsURLConnection.HTTP_OK) {
-//                String line;
-//                BufferedReader br=new BufferedReader(new InputStreamReader(conn.getInputStream()));
-//                while ((line=br.readLine()) != null) {
-//                    response+=line;
-//                }
-//            }
-//            else {
-//                response="";
-//
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//
-//        return response;
 
 	}
 }
