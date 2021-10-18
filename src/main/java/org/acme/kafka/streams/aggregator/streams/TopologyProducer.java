@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -66,11 +67,14 @@ import life.genny.qwanda.Answer;
 import life.genny.qwanda.attribute.Attribute;
 import life.genny.qwanda.attribute.AttributeText;
 import life.genny.qwanda.attribute.EntityAttribute;
+import life.genny.qwanda.datatype.DataType;
 import life.genny.qwanda.entity.BaseEntity;
 import life.genny.qwanda.entity.SearchEntity;
 import life.genny.qwanda.exception.BadDataException;
 import life.genny.qwanda.exception.DebugException;
 import life.genny.qwanda.message.QDataAnswerMessage;
+import life.genny.qwanda.message.QDataAttributeMessage;
+import life.genny.qwanda.validation.Validation;
 
 @ApplicationScoped
 public class TopologyProducer {
@@ -114,9 +118,9 @@ public class TopologyProducer {
 
 	GennyToken serviceToken;
 
-//	   static public Map<String,Map<String, Attribute>> realmAttributeMap = new ConcurrentHashMap<>();
+	   static public Map<String,Map<String, Attribute>> realmAttributeMap = new ConcurrentHashMap<>();
 	static public Map<String, Map<String, BaseEntity>> defs = new ConcurrentHashMap<>(); // realm and DEF lookup
-//	    static public QDataAttributeMessage attributesMsg = null;
+	    static public QDataAttributeMessage attributesMsg = null;
 
 	// custom executor
 //		private static final ExecutorService executorService = Executors.newFixedThreadPool(20);
@@ -234,40 +238,43 @@ public class TopologyProducer {
 						} else {
 							// check source code exists
 							// JsonObject source = fetchDataFromCache(sourceCode,userToken);
-							BaseEntity sourceBe = fetchBaseEntityFromCache(answer.getSourceCode(), userToken);
+							BaseEntity sourceBe = null;
+
+							sourceBe = fetchBaseEntityFromCache(answer.getSourceCode(), serviceToken);
+
 							log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
 							if (sourceBe != null) {
 								// Check Target exist
 								// String targetCode = answerJson.getString("targetCode");
 								// JsonObject target= fetchDataFromCache(targetCode,userToken);
-								BaseEntity targetBe = fetchBaseEntityFromCache(answer.getTargetCode(), userToken);
+								BaseEntity targetBe = fetchBaseEntityFromCache(answer.getTargetCode(), serviceToken);
 								if (targetBe != null) {
 									BaseEntity defBe = getDEF(targetBe, serviceToken);
 									// check attribute code is allowed by targetDEF
 									if (defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
 //										// Now validate values
-//										Attribute attribute = getAttribute(answer.getAttributeCode(), userToken.getToken());
-//										DataType dataType = attribute.getDataType();
-//										if ("PRI_ABN".equals(answer.getAttributeCode())) {
-//											valid = isValidABN(answer.getValue());
-//										} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
-//											valid = isValidCreditCard(answer.getValue());
-//										} else {
-//											Boolean isAnyValid = false;
-//											for (Validation validation : dataType.getValidationList()) {
-//												// Now check the validation
-//												String regex = validation.getRegex();
-//												// TODO speedup by precompiling all validations
-//												boolean regexOk =Pattern.compile(regex).matcher(answer.getValue()).matches(); 
-//												if (regexOk) {
-//													isAnyValid = true;
-//													log.info("Regex OK! ["+answer.getValue()+"] for regex "+regex);
-//													break;
-//												} 
-//												log.info("Regex failed! ["+answer.getValue()+"] for regex "+regex);
-//											}
-//											valid = isAnyValid;
-//										}
+										Attribute attribute = getAttribute(answer.getAttributeCode(), serviceToken.getToken());
+										DataType dataType = attribute.getDataType();
+										if ("PRI_ABN".equals(answer.getAttributeCode())) {
+											valid = isValidABN(answer.getValue());
+										} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
+											valid = isValidCreditCard(answer.getValue());
+										} else {
+											Boolean isAnyValid = false;
+											for (Validation validation : dataType.getValidationList()) {
+												// Now check the validation
+												String regex = validation.getRegex();
+												// TODO speedup by precompiling all validations
+												boolean regexOk =Pattern.compile(regex).matcher(answer.getValue()).matches(); 
+												if (regexOk) {
+													isAnyValid = true;
+													log.info("Regex OK! ["+answer.getValue()+"] for regex "+regex);
+													break;
+												} 
+												log.info("Regex failed! ["+answer.getValue()+"] for regex "+regex);
+											}
+											valid = isAnyValid;
+										}
 									} else {
 										valid = false;
 										log.error("AttributeCode" + answer.getAttributeCode() + " not allowed for "
@@ -475,44 +482,44 @@ public class TopologyProducer {
 //	        return item;
 //	}
 //	
-//    public QDataAttributeMessage loadAllAttributesIntoCache(final GennyToken token) {
-//        try {
-//            boolean cacheWorked = false;
-//            String realm = token.getRealm();
-//            log.info("All the attributes about to become loaded ... for realm "+realm);
-//                 log.info("LOADING ATTRIBUTES FROM API");
-//                String jsonString = apiGet(GennySettings.qwandaServiceUrl + "/qwanda/attributes", token.getToken());
-//                if (!StringUtils.isBlank(jsonString)) {
-// 
-//                    attributesMsg = fromJson(jsonString, QDataAttributeMessage.class);
-//                    Attribute[] attributeArray = attributesMsg.getItems();
-//
-//                    if (!realmAttributeMap.containsKey(realm)) {
-//                    	realmAttributeMap.put(realm, new ConcurrentHashMap<String,Attribute>());
-//                    }
-//                    Map<String,Attribute> attributeMap = realmAttributeMap.get(realm);
-//      
-//                    for (Attribute attribute : attributeArray) {
-//                        attributeMap.put(attribute.getCode(), attribute);
-//                    }
-//                   // realmAttributeMap.put(realm, attributeMap);
-//                    
-//                    log.info("All the attributes have been loaded from api in" + attributeMap.size() + " attributes");
-//                } else {
-//                    log.error("NO ATTRIBUTES LOADED FROM API");
-//                }
-//
-//
-//            return attributesMsg;
-//        } catch (Exception e) {
-//            log.error("Attributes API not available");
-//        }
-//        return null;
-//    }
-//    public QDataAttributeMessage loadAllAttributesIntoCache(final String token) {
-//        return loadAllAttributesIntoCache(new GennyToken(token));
-//    }
-//
+    public QDataAttributeMessage loadAllAttributesIntoCache(final GennyToken token) {
+        try {
+            boolean cacheWorked = false;
+            String realm = token.getRealm();
+            log.info("All the attributes about to become loaded ... for realm "+realm);
+                 log.info("LOADING ATTRIBUTES FROM API");
+                String jsonString = apiQwandaService.getAttributes("Bearer " + serviceToken.getToken());
+                if (!StringUtils.isBlank(jsonString)) {
+ 
+                    attributesMsg = jsonb.fromJson(jsonString, QDataAttributeMessage.class);
+                    Attribute[] attributeArray = attributesMsg.getItems();
+
+                    if (!realmAttributeMap.containsKey(realm)) {
+                    	realmAttributeMap.put(realm, new ConcurrentHashMap<String,Attribute>());
+                    }
+                    Map<String,Attribute> attributeMap = realmAttributeMap.get(realm);
+      
+                    for (Attribute attribute : attributeArray) {
+                        attributeMap.put(attribute.getCode(), attribute);
+                    }
+                   // realmAttributeMap.put(realm, attributeMap);
+                    
+                    log.info("All the attributes have been loaded from api in" + attributeMap.size() + " attributes");
+                } else {
+                    log.error("NO ATTRIBUTES LOADED FROM API");
+                }
+
+
+            return attributesMsg;
+        } catch (Exception e) {
+            log.error("Attributes API not available");
+        }
+        return null;
+    }
+    public QDataAttributeMessage loadAllAttributesIntoCache(final String token) {
+        return loadAllAttributesIntoCache(new GennyToken(token));
+    }
+
 	public Map<String, BaseEntity> getDefMap(final GennyToken userToken) {
 		if ((defs == null) || (defs.isEmpty())) {
 			// Load in Defs
@@ -712,35 +719,35 @@ public class TopologyProducer {
 //            Save the BaseEntity created
 			item.setFastAttributes(true); // make fast
 			defs.get(userToken.getRealm()).put(item.getCode(), item);
-			// log.info("Saving ("+userToken.getRealm()+") DEF "+item.getCode());
+			log.info("Saving ("+userToken.getRealm()+") DEF "+item.getCode());
 		}
 	}
-// 
-//    public Attribute getAttribute(final String attributeCode, final String token) {
-//    	GennyToken gennyToken = new GennyToken(token);
-//    	return getAttribute(attributeCode, gennyToken);
-//    }
-//    
-//    public Attribute getAttribute(final String attributeCode, final GennyToken gennyToken) {
-//    	String realm = gennyToken.getRealm();
-//    	if (!realmAttributeMap.containsKey(realm)) {
-//    		loadAllAttributesIntoCache(gennyToken);
-//    	}
-//        Attribute ret = realmAttributeMap.get(gennyToken.getRealm()).get(attributeCode);
-//        if (ret == null) {
-//            if (attributeCode.startsWith("SRT_") || attributeCode.startsWith("RAW_")) {
-//                ret = new AttributeText(attributeCode, attributeCode);
-//            } else {
-//                loadAllAttributesIntoCache(gennyToken);
-//                ret = realmAttributeMap.get(gennyToken.getRealm()).get(attributeCode);
-//                if (ret == null) {
-//                    log.error("Attribute NOT FOUND :"+realm+":"+attributeCode);
-//                }
-//            }
-//        }
-//        return ret;
-//    }
-//    
+ 
+    public Attribute getAttribute(final String attributeCode, final String token) {
+    	GennyToken gennyToken = new GennyToken(token);
+    	return getAttribute(attributeCode, gennyToken);
+    }
+    
+    public Attribute getAttribute(final String attributeCode, final GennyToken gennyToken) {
+    	String realm = gennyToken.getRealm();
+    	if (!realmAttributeMap.containsKey(realm)) {
+    		loadAllAttributesIntoCache(gennyToken);
+    	}
+        Attribute ret = realmAttributeMap.get(gennyToken.getRealm()).get(attributeCode);
+        if (ret == null) {
+            if (attributeCode.startsWith("SRT_") || attributeCode.startsWith("RAW_")) {
+                ret = new AttributeText(attributeCode, attributeCode);
+            } else {
+                loadAllAttributesIntoCache(gennyToken);
+                ret = realmAttributeMap.get(gennyToken.getRealm()).get(attributeCode);
+                if (ret == null) {
+                    log.error("Attribute NOT FOUND :"+realm+":"+attributeCode);
+                }
+            }
+        }
+        return ret;
+    }
+    
 //	public String apiGet(String url, String authToken) throws IOException {
 //
 //		HttpRequest.Builder requestBuilder = Optional.ofNullable(authToken)
@@ -1245,8 +1252,8 @@ public class TopologyProducer {
 //			 String resultJsonStr =
 //			 apiPostEntity2(apiUrl+"/qwanda/baseentitys/search25",
 //			 searchJson, serviceToken.getToken(),null);
-			log.info("Fetched baseentitys string for "+resultJsonStr);
-			JsonObject resultJson = null;
+//			log.info("Fetched baseentitys string for "+resultJsonStr)			
+JsonObject resultJson = null;
 
 			try {
 				resultJson = jsonb.fromJson(resultJsonStr, JsonObject.class);

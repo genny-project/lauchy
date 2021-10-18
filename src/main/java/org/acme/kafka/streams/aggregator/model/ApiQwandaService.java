@@ -1,5 +1,6 @@
 package org.acme.kafka.streams.aggregator.model;
 
+import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -17,5 +18,10 @@ public interface ApiQwandaService {
     @Produces("application/json")
     String getSearchResults(final String searchBE, @HeaderParam("Authorization") final String bearertoken);
     
+    @GET
+    @Path("/attributes")
+    @Produces("application/json")
+    String getAttributes(@HeaderParam("Authorization") final String bearertoken);
 
+    
 }

@@ -20,3 +20,4 @@ USER=`whoami`
 ./mvnw clean package -Dquarkus.container-image.build=true -DskipTests=true
 docker tag ${org}/${project}:${version} ${org}/${project}:${version}
 docker tag ${org}/${project}:${version} ${org}/${project}:latest
+docker tag ${org}/${project}:${version} ${org}/${project}:ptest
