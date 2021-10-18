@@ -48,6 +48,7 @@ import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import javax.net.ssl.HttpsURLConnection;
 
+import org.acme.kafka.streams.aggregator.model.ApiBridgeService;
 import org.acme.kafka.streams.aggregator.model.ApiQwandaService;
 import org.acme.kafka.streams.aggregator.model.ApiService;
 import org.acme.kafka.streams.aggregator.model.Attribute2;
@@ -61,6 +62,7 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.logging.Logger;
+
 
 import life.genny.models.GennyToken;
 import life.genny.qwanda.Answer;
@@ -81,6 +83,11 @@ public class TopologyProducer {
 
 	private static final Logger log = Logger.getLogger(TopologyProducer.class);
 
+    @Inject
+    InternalProducer producer;
+	
+	  
+	
 	@Inject
 	@RestClient
 	ApiService apiService;
@@ -89,6 +96,10 @@ public class TopologyProducer {
 	@RestClient
 	ApiQwandaService apiQwandaService;
 
+	@Inject
+	@RestClient
+	ApiBridgeService apiBridgeService;
+	
 	@ConfigProperty(name = "genny.show.values", defaultValue = "false")
 	Boolean showValues;
 
@@ -158,6 +169,7 @@ public class TopologyProducer {
 	static final String DATA_TOPIC = "data";
 	static final String TEST_DATA_TOPIC = "test-data";
 	static final String VALIDATED_DATA_TOPIC = "valid_data";
+	static final String BLACKLIST_TOPIC = "blacklist";
 
 	public static Boolean isValidABN(final String abnCode) {
 		// Thanks to "Joker" from stackOverflow -
@@ -297,13 +309,21 @@ public class TopologyProducer {
 //				if (userToken == null) {
 //					log.error("UserToken is null!! ");
 //				}
-//				uuid = userToken.getUserUUID();
 				valid = false;
 			}
 
 		}
 		if (!valid) {
 			// TODO send uuid to blacklist channel
+			uuid = userToken.getUuid();
+			log.info("BLACKLIST "+userToken.getEmail()+":"+uuid);
+			try {
+				//apiBridgeService.addBlacklistUUID(uuid, "Bearer "+serviceToken.getToken());
+				producer.getToBlacklists().send(uuid);
+			} catch (Exception e) {
+				log.error("Could not add uuid to blacklist api "+uuid);
+			}
+
 		}
 		return valid;
 	}
@@ -316,7 +336,7 @@ public class TopologyProducer {
 			log.info("service password :" + servicePassword);
 			log.info("keycloakUrl      :" + keycloakUrl);
 			log.info("keycloak clientId:" + clientId);
-		//	log.info("keycloak secret  :" + secret);
+			log.info("keycloak secret  :" + secret);
 			log.info("keycloak realm   :" + keycloakRealm);
 			log.info("api Url          :" + apiUrl);
 		}
@@ -324,6 +344,7 @@ public class TopologyProducer {
 		try {
 			serviceToken = getToken(serviceUsername, servicePassword);
 			setUpDefs(serviceToken);
+			loadAllAttributesIntoCache(serviceToken);
 		} catch (IOException e) {
 			log.error("Cannot obtain Service Token for " + keycloakUrl + " and " + keycloakRealm);
 		} catch (BadDataException e) {
@@ -488,7 +509,7 @@ public class TopologyProducer {
             String realm = token.getRealm();
             log.info("All the attributes about to become loaded ... for realm "+realm);
                  log.info("LOADING ATTRIBUTES FROM API");
-                String jsonString = apiQwandaService.getAttributes("Bearer " + serviceToken.getToken());
+                String jsonString = apiQwandaService.getAttributes("Bearer " + token.getToken());
                 if (!StringUtils.isBlank(jsonString)) {
  
                     attributesMsg = jsonb.fromJson(jsonString, QDataAttributeMessage.class);
@@ -504,7 +525,7 @@ public class TopologyProducer {
                     }
                    // realmAttributeMap.put(realm, attributeMap);
                     
-                    log.info("All the attributes have been loaded from api in" + attributeMap.size() + " attributes");
+                    log.info("All the attributes have been loaded from api in " + attributeMap.size() + " attributes");
                 } else {
                     log.error("NO ATTRIBUTES LOADED FROM API");
                 }
