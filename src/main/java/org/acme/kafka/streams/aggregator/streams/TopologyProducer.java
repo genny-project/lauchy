@@ -99,6 +99,10 @@ public class TopologyProducer {
 
 	@ConfigProperty(name = "genny.show.values", defaultValue = "false")
 	Boolean showValues;
+	
+	@ConfigProperty(name = "genny.enable.blacklist", defaultValue = "true")
+	Boolean enableBlacklist;
+
 
 	@ConfigProperty(name = "genny.keycloak.url", defaultValue = "https://keycloak.gada.io")
 	String baseKeycloakUrl;
@@ -207,6 +211,7 @@ public class TopologyProducer {
 		String uuid = null;
 		String realm = null;
 		GennyToken userToken = null;
+		
 
 		if (data != null && !data.contains("Adaam")) {
 			try {
@@ -254,8 +259,6 @@ public class TopologyProducer {
 							log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
 							if (sourceBe != null) {
 								// Check Target exist
-								// String targetCode = answerJson.getString("targetCode");
-								// JsonObject target= fetchDataFromCache(targetCode,userToken);
 								BaseEntity targetBe = fetchBaseEntityFromCache(answer.getTargetCode(), serviceToken);
 								if (targetBe != null) {
 									BaseEntity defBe = getDEF(targetBe, serviceToken);
@@ -315,20 +318,20 @@ public class TopologyProducer {
 				}
 			} catch (Exception e) {
 
-//				if (userToken == null) {
-//					log.error("UserToken is null!! ");
-//				}
 				valid = false;
 			}
 
 		}
 		if (!valid) {
-			// TODO send uuid to blacklist channel
 			uuid = userToken.getUuid();
-			log.info("BLACKLIST " + userToken.getEmail() + ":" + uuid);
+			log.info("BLACKLIST "+(enableBlacklist?"ON":"OFF")+" " + userToken.getEmail() + ":" + uuid);
 			try {
 				// apiBridgeService.addBlacklistUUID(uuid, "Bearer "+serviceToken.getToken());
-				producer.getToBlacklists().send(uuid);
+				if (!enableBlacklist) {
+					valid = true;
+				} else {
+					producer.getToBlacklists().send(uuid);
+				}
 			} catch (Exception e) {
 				log.error("Could not add uuid to blacklist api " + uuid);
 			}
@@ -348,6 +351,7 @@ public class TopologyProducer {
 			log.info("keycloak secret  :" + secret);
 			log.info("keycloak realm   :" + keycloakRealm);
 			log.info("api Url          :" + apiUrl);
+			log.info("Blacklist        :" + (enableBlacklist?"ON":"OFF"));
 		}
 
 		try {
