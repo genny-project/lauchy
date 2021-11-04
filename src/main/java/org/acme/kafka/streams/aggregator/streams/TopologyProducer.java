@@ -116,7 +116,7 @@ public class TopologyProducer {
 	@ConfigProperty(name = "genny.service.password", defaultValue = "password")
 	String servicePassword;
 
-	@ConfigProperty(name = "genny.oidc.auth-server-url", defaultValue = "https://keycloak.genny.life/auth/realms/genny")
+	@ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "https://keycloak.genny.life/auth/realms/genny")
 	String keycloakUrl;
 
 	@ConfigProperty(name = "genny.oidc.client-id", defaultValue = "backend")
@@ -356,8 +356,8 @@ public class TopologyProducer {
 
 		try {
 			serviceToken = getToken(serviceUsername, servicePassword);
-			setUpDefs(serviceToken);
 			loadAllAttributesIntoCache(serviceToken);
+			setUpDefs(serviceToken);
 		} catch (IOException e) {
 			log.error("Cannot obtain Service Token for " + keycloakUrl + " and " + keycloakRealm);
 		} catch (BadDataException e) {
@@ -842,19 +842,35 @@ public class TopologyProducer {
 			try {
 				resultJson = jsonb.fromJson(resultJsonStr, JsonObject.class);
 				JsonArray result = resultJson.getJsonArray("codes");
-				log.info("Fetched baseentitys for " + searchBE.getCode() + ":" + resultJson);
+				if (result == null) {
+					log.error("Could ot fetch JsonArray from 'codes' "+resultJson);
+				}
+				log.info("Fetched "+result.size()+" for " + searchBE.getCode() + ":" + resultJson);
 				int size = result.size();
 				for (int i = 0; i < size; i++) {
 					String code = result.getString(i);
-					BaseEntity be = fetchBaseEntityFromCache(code, serviceToken);
+					BaseEntity be = null;
+					log.info(" "+i+" of "+size+" Fetching be with code = "+code);
+					try {
+						be = fetchBaseEntityFromCache(code, serviceToken);
+					} catch (Exception e) {
+						log.error("Error in fetching baseentitys from search result code -> " + code+" error "+e.getLocalizedMessage());
+					 if (i > 0) {
+						 i--;
+						 continue;
+					 }
+					}
 //					System.out.println("code:" + code + ",index:" + (i+1) + "/" + size);
-
+					if (be == null) {
+						log.error("No Baseentity with code "+code+" in cache");
+						continue;
+					}
 					be.setIndex(i);
 					results.add(be);
 				}
 
 			} catch (Exception e1) {
-				log.error("Bad Json -> " + resultJsonStr);
+				log.error("Error in fetching baseentitys from search result codes -> " + resultJsonStr+" error "+e1.getLocalizedMessage());
 			}
 
 		} catch (Exception e1) {
