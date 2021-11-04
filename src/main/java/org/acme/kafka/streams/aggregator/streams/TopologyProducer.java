@@ -846,7 +846,16 @@ public class TopologyProducer {
 				int size = result.size();
 				for (int i = 0; i < size; i++) {
 					String code = result.getString(i);
-					BaseEntity be = fetchBaseEntityFromCache(code, serviceToken);
+					BaseEntity be = null;
+					try {
+						be = fetchBaseEntityFromCache(code, serviceToken);
+					} catch (Exception e) {
+						log.error("Error in fetching baseentitys from search result code -> " + code+" error "+e.getLocalizedMessage());
+					 if (i > 0) {
+						 i--;
+						 continue;
+					 }
+					}
 //					System.out.println("code:" + code + ",index:" + (i+1) + "/" + size);
 
 					be.setIndex(i);
@@ -854,7 +863,7 @@ public class TopologyProducer {
 				}
 
 			} catch (Exception e1) {
-				log.error("Bad Json -> " + resultJsonStr);
+				log.error("Error in fetching baseentitys from search result codes -> " + resultJsonStr+" error "+e1.getLocalizedMessage());
 			}
 
 		} catch (Exception e1) {
