@@ -356,8 +356,8 @@ public class TopologyProducer {
 
 		try {
 			serviceToken = getToken(serviceUsername, servicePassword);
-			setUpDefs(serviceToken);
 			loadAllAttributesIntoCache(serviceToken);
+			setUpDefs(serviceToken);
 		} catch (IOException e) {
 			log.error("Cannot obtain Service Token for " + keycloakUrl + " and " + keycloakRealm);
 		} catch (BadDataException e) {
