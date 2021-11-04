@@ -861,7 +861,10 @@ public class TopologyProducer {
 					 }
 					}
 //					System.out.println("code:" + code + ",index:" + (i+1) + "/" + size);
-
+					if (be == null) {
+						log.error("No Baseentity with code "+code+" in cache");
+						continue;
+					}
 					be.setIndex(i);
 					results.add(be);
 				}
