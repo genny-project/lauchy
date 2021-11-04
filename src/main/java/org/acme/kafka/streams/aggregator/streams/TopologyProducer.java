@@ -842,11 +842,15 @@ public class TopologyProducer {
 			try {
 				resultJson = jsonb.fromJson(resultJsonStr, JsonObject.class);
 				JsonArray result = resultJson.getJsonArray("codes");
-				log.info("Fetched baseentitys for " + searchBE.getCode() + ":" + resultJson);
+				if (result == null) {
+					log.error("Could ot fetch JsonArray from 'codes' "+resultJson);
+				}
+				log.info("Fetched "+result.size()+" for " + searchBE.getCode() + ":" + resultJson);
 				int size = result.size();
 				for (int i = 0; i < size; i++) {
 					String code = result.getString(i);
 					BaseEntity be = null;
+					log.info(" "+i+" of "+size+" Fetching be with code = "+code);
 					try {
 						be = fetchBaseEntityFromCache(code, serviceToken);
 					} catch (Exception e) {
