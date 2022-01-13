@@ -75,6 +75,7 @@ import life.genny.qwanda.exception.BadDataException;
 import life.genny.qwanda.exception.DebugException;
 import life.genny.qwanda.message.QDataAnswerMessage;
 import life.genny.qwanda.message.QDataAttributeMessage;
+import life.genny.qwanda.message.QDataBaseEntityMessage;
 import life.genny.qwanda.validation.Validation;
 
 @ApplicationScoped
@@ -269,6 +270,21 @@ public class TopologyProducer {
 												serviceToken.getToken());
 										if (attribute != null) {
 											DataType dataType = attribute.getDataType();
+											// HACK: TODO ACC - To send back an emoty LNK_PERSON for a bucket search
+											if ("LNK_PERSON".equals(answer.getAttributeCode())) {
+												if ("BKT_APPLICATIONS".equals(answer.getTargetCode())) {
+													if ("[]".equals(answer.getValue())) {
+													// So send back a dummy empty value for the LNK_PERSON
+														targetBe.setValue(attribute, "[]");
+														QDataBaseEntityMessage responseMsg = new QDataBaseEntityMessage(targetBe);
+														responseMsg.setTotal(1L);
+														responseMsg.setReturnCount(1L);
+														String jsonMsg= jsonb.toJson(responseMsg);
+														producer.getToWebData().send(jsonMsg);
+														log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode());
+													}
+												}
+											}
 											if ("PRI_ABN".equals(answer.getAttributeCode())) {
 												valid = isValidABN(answer.getValue());
 											} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {

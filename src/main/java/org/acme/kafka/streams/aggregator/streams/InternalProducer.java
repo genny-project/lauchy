@@ -21,7 +21,15 @@ public class InternalProducer {
     return blacklists;
   }
 
- 
+  @Inject @Channel("webdata") Emitter<String> webdata;
+  public Emitter<String> getToWebData() {
+    return webdata;
+  }
+  
+  @Inject @Channel("webcmds") Emitter<String> webcmds;
+  public Emitter<String> getToWebCmds() {
+    return webcmds;
+  }
 
 }
 
