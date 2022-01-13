@@ -283,7 +283,7 @@ public class TopologyProducer {
 														String jsonMsg= jsonb.toJson(responseMsg);
 													
 														producer.getToWebData().send(jsonMsg);
-														log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode()+" sent this json->"+jsonMsg);
+														log.info("Detected cleared BKT_APPLICATIONS search  from "+userToken.getEmailUserCode()+" sent this json->"+jsonMsg);
 													}
 												}
 											}
