@@ -279,9 +279,11 @@ public class TopologyProducer {
 														QDataBaseEntityMessage responseMsg = new QDataBaseEntityMessage(targetBe);
 														responseMsg.setTotal(1L);
 														responseMsg.setReturnCount(1L);
+														responseMsg.setToken(userToken.getToken());
 														String jsonMsg= jsonb.toJson(responseMsg);
+													
 														producer.getToWebData().send(jsonMsg);
-														log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode());
+														log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode()+" sent this json->"+jsonMsg);
 													}
 												}
 											}
