@@ -87,6 +87,9 @@ public class TopologyProducer {
 
 	Jsonb jsonb = JsonbBuilder.create();
 
+	static String DATA_TOPIC = "data";
+	static String WEBDATA_TOPIC = "webdata";
+
     void onStart(@Observes StartupEvent ev) {
 
 		if (showValues) {
