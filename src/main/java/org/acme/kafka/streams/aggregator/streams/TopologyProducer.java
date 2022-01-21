@@ -221,6 +221,9 @@ public class TopologyProducer {
 				LocalDateTime now = LocalDateTime.now();
 				/*calculates the years diff between two dates and return bool, is eligible*/
 				int year = Period.between(dateTime.toLocalDate(), now.toLocalDate()).getYears();
+				System.out.println("userEligibleAge: " + Integer.parseInt(userEligibleAge));
+				System.out.println("year: " + year);
+				System.out.println("res: " + (year >= Integer.parseInt(userEligibleAge)));
 				return (year >= Integer.parseInt(userEligibleAge));
 			} catch (Exception e) {
 				System.out.println("Error: Could not get dob year diff :: " + e.getMessage());
@@ -320,6 +323,7 @@ public class TopologyProducer {
 											} else if (("PRI_DATE_OF_BIRTH".equals(answer.getAttributeCode())) && ("mentormatch".equalsIgnoreCase(userToken.getRealm()))) {
 												System.out.println("Inside PRI_DATE_OF_BIRTH");
 												valid = isEligibleAge(answer.getValue());
+												System.out.println("Valid: " + valid);
 											} else {
 												System.out.println("Inside Else");
 												Boolean isAnyValid = false;
