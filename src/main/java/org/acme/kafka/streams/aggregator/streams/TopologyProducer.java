@@ -382,7 +382,7 @@ public class TopologyProducer {
 				// apiBridgeService.addBlacklistUUID(uuid, "Bearer "+serviceToken.getToken());
 				if (!enableBlacklist) {
 					System.out.println("enableBlacklist is False");
-					valid = true;
+					/*valid = true;*/
 				} else {
 					producer.getToBlacklists().send(uuid);
 				}
