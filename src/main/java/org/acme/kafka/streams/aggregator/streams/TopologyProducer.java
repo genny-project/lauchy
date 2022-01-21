@@ -417,8 +417,14 @@ public class TopologyProducer {
 		// Read the input Kafka topic into a KStream instance.
 
 		builder.stream("data", Consumed.with(Serdes.String(), Serdes.String())).mapValues(attribute::tidy)
-				.filter((k, v) -> validate(v))
-				// .peek((k, v) -> System.out.log.info("K[" + k + "] " + v))
+				.filter((k, v) -> {
+					boolean validationAns = validate(v);
+					System.out.println("key: " + k);
+					System.out.println("value: " + v);
+					System.out.println("validationAns: " + validationAns);
+					return validationAns;
+				})
+				.peek((k, v) -> System.out.log.info("K[" + k + "] " + v))
 				.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
 
 //        builder
