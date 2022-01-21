@@ -424,7 +424,7 @@ public class TopologyProducer {
 					System.out.println("validationAns: " + validationAns);
 					return validationAns;
 				})
-				.peek((k, v) -> System.out.log.info("K[" + k + "] " + v))
+				.peek((k, v) -> System.out.println("K[" + k + "] " + v))
 				.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
 
 //        builder
