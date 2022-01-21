@@ -132,9 +132,6 @@ public class TopologyProducer {
 	@ConfigProperty(name = "genny.api.url", defaultValue = "http://alyson.genny.life:8280")
 	String apiUrl;
 
-	@ConfigProperty(name = "user.eligible.age", defaultValue = "18")
-	String userEligibleAge;
-
 	GennyToken serviceToken;
 
 	static public Map<String, Map<String, Attribute>> realmAttributeMap = new ConcurrentHashMap<>();
@@ -213,25 +210,6 @@ public class TopologyProducer {
 		return (sum % 10 == 0);
 	}
 
-	public boolean isEligibleAge(String dob) {
-		if ((dob != null) && (!dob.isEmpty())) {
-			try {
-				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-				LocalDateTime dateTime = LocalDateTime.parse(dob, formatter);
-				LocalDateTime now = LocalDateTime.now();
-				/*calculates the years diff between two dates and return bool, is eligible*/
-				int year = Period.between(dateTime.toLocalDate(), now.toLocalDate()).getYears();
-				System.out.println("userEligibleAge: " + Integer.parseInt(userEligibleAge));
-				System.out.println("year: " + year);
-				System.out.println("res: " + (year >= Integer.parseInt(userEligibleAge)));
-				return (year >= Integer.parseInt(userEligibleAge));
-			} catch (Exception e) {
-				System.out.println("Error: Could not get dob year diff :: " + e.getMessage());
-			}
-		}
-		return false;
-	}
-
 	public Boolean validate(String data) {
 		Boolean valid = true;
 		String uuid = null;
@@ -269,9 +247,6 @@ public class TopologyProducer {
 					}
 //					
 					for (Answer answer : answerMsg.getItems()) {
-						System.out.println("answer : " + answer.getAttributeCode());
-						System.out.println("realm : " + userToken.getRealm());
-
 //						JsonObject answerJson = answer.asJsonObject();
 //						// TODO, check questionCode by fetching from questions 5
 //						// TODO check askID by fetching from Tasks
@@ -315,17 +290,11 @@ public class TopologyProducer {
 													}
 												}
 											}
-											System.out.println("Attribute Not NULL");
 											if ("PRI_ABN".equals(answer.getAttributeCode())) {
 												valid = isValidABN(answer.getValue());
 											} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
 												valid = isValidCreditCard(answer.getValue());
-											} else if (("PRI_DATE_OF_BIRTH".equals(answer.getAttributeCode())) && ("mentormatch".equalsIgnoreCase(userToken.getRealm()))) {
-												System.out.println("Inside PRI_DATE_OF_BIRTH");
-												valid = isEligibleAge(answer.getValue());
-												System.out.println("Valid: " + valid);
 											} else {
-												System.out.println("Inside Else");
 												Boolean isAnyValid = false;
 												for (Validation validation : dataType.getValidationList()) {
 													// Now check the validation
@@ -374,15 +343,13 @@ public class TopologyProducer {
 			}
 
 		}
-		System.out.println("Valid2: " + valid);
 		if (!valid) {
 			uuid = userToken.getUuid();
 			log.info("BLACKLIST "+(enableBlacklist?"ON":"OFF")+" " + userToken.getEmail() + ":" + uuid);
 			try {
 				// apiBridgeService.addBlacklistUUID(uuid, "Bearer "+serviceToken.getToken());
 				if (!enableBlacklist) {
-					System.out.println("enableBlacklist is False");
-					/*valid = true;*/
+					valid = true;
 				} else {
 					producer.getToBlacklists().send(uuid);
 				}
@@ -391,7 +358,6 @@ public class TopologyProducer {
 			}
 
 		}
-		System.out.println("Valid3: " + valid);
 		return valid;
 	}
 
@@ -427,14 +393,8 @@ public class TopologyProducer {
 		// Read the input Kafka topic into a KStream instance.
 
 		builder.stream("data", Consumed.with(Serdes.String(), Serdes.String())).mapValues(attribute::tidy)
-				.filter((k, v) -> {
-					boolean validationAns = validate(v);
-					System.out.println("key: " + k);
-					System.out.println("value: " + v);
-					System.out.println("validationAns: " + validationAns);
-					return validationAns;
-				})
-				.peek((k, v) -> System.out.println("K[" + k + "] " + v))
+				.filter((k, v) -> validate(v))
+				// .peek((k, v) -> System.out.log.info("K[" + k + "] " + v))
 				.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
 
 //        builder
