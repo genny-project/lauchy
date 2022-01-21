@@ -374,12 +374,14 @@ public class TopologyProducer {
 			}
 
 		}
+		System.out.println("Valid2: " + valid);
 		if (!valid) {
 			uuid = userToken.getUuid();
 			log.info("BLACKLIST "+(enableBlacklist?"ON":"OFF")+" " + userToken.getEmail() + ":" + uuid);
 			try {
 				// apiBridgeService.addBlacklistUUID(uuid, "Bearer "+serviceToken.getToken());
 				if (!enableBlacklist) {
+					System.out.println("enableBlacklist is False");
 					valid = true;
 				} else {
 					producer.getToBlacklists().send(uuid);
@@ -389,6 +391,7 @@ public class TopologyProducer {
 			}
 
 		}
+		System.out.println("Valid3: " + valid);
 		return valid;
 	}
 
