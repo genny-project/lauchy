@@ -38,6 +38,9 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
+import java.time.Period;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -129,6 +132,9 @@ public class TopologyProducer {
 	@ConfigProperty(name = "genny.api.url", defaultValue = "http://alyson.genny.life:8280")
 	String apiUrl;
 
+	@ConfigProperty(name = "user.eligible.age", defaultValue = "18")
+	String userEligibleAge;
+
 	GennyToken serviceToken;
 
 	static public Map<String, Map<String, Attribute>> realmAttributeMap = new ConcurrentHashMap<>();
@@ -205,6 +211,22 @@ public class TopologyProducer {
 			alternate = !alternate;
 		}
 		return (sum % 10 == 0);
+	}
+
+	public boolean isEligibleAge(String dob) {
+		if ((dob != null) && (!dob.isEmpty())) {
+			try {
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+				LocalDateTime dateTime = LocalDateTime.parse(dob, formatter);
+				LocalDateTime now = LocalDateTime.now();
+				/*calculates the years diff between two dates and return bool, is eligible*/
+				int year = Period.between(dateTime.toLocalDate(), now.toLocalDate()).getYears();
+				return (year >= Integer.parseInt(userEligibleAge));
+			} catch (Exception e) {
+				System.out.println("Error: Could not get dob year diff :: " + e.getMessage());
+			}
+		}
+		return false;
 	}
 
 	public Boolean validate(String data) {
@@ -291,6 +313,8 @@ public class TopologyProducer {
 												valid = isValidABN(answer.getValue());
 											} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
 												valid = isValidCreditCard(answer.getValue());
+											} else if (("PRI_DATE_OF_BIRTH".equals(answer.getAttributeCode())) && ("mentormatch".equalsIgnoreCase(userToken.getRealm()))) {
+												valid = isEligibleAge(answer.getValue());
 											} else {
 												Boolean isAnyValid = false;
 												for (Validation validation : dataType.getValidationList()) {
