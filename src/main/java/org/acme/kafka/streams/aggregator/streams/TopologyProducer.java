@@ -266,6 +266,9 @@ public class TopologyProducer {
 					}
 //					
 					for (Answer answer : answerMsg.getItems()) {
+						System.out.println("answer : " + answer.getAttributeCode());
+						System.out.println("realm : " + userToken.getRealm());
+
 //						JsonObject answerJson = answer.asJsonObject();
 //						// TODO, check questionCode by fetching from questions 5
 //						// TODO check askID by fetching from Tasks
