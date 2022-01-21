@@ -312,13 +312,16 @@ public class TopologyProducer {
 													}
 												}
 											}
+											System.out.println("Attribute Not NULL");
 											if ("PRI_ABN".equals(answer.getAttributeCode())) {
 												valid = isValidABN(answer.getValue());
 											} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
 												valid = isValidCreditCard(answer.getValue());
 											} else if (("PRI_DATE_OF_BIRTH".equals(answer.getAttributeCode())) && ("mentormatch".equalsIgnoreCase(userToken.getRealm()))) {
+												System.out.println("Inside PRI_DATE_OF_BIRTH");
 												valid = isEligibleAge(answer.getValue());
 											} else {
+												System.out.println("Inside Else");
 												Boolean isAnyValid = false;
 												for (Validation validation : dataType.getValidationList()) {
 													// Now check the validation
