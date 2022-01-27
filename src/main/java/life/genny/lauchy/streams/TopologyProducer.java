@@ -12,6 +12,7 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import javax.persistence.EntityManager;
 
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -36,6 +37,7 @@ import life.genny.qwandaq.validation.Validation;
 import life.genny.qwandaq.data.GennyCache;
 import life.genny.qwandaq.utils.BaseEntityUtils;
 import life.genny.qwandaq.utils.CacheUtils;
+import life.genny.qwandaq.utils.DatabaseUtils;
 import life.genny.qwandaq.utils.DefUtils;
 import life.genny.qwandaq.utils.KeycloakUtils;
 import life.genny.qwandaq.utils.QwandaUtils;
@@ -79,6 +81,9 @@ public class TopologyProducer {
 	InternalProducer producer;
 
 	@Inject
+	EntityManager entityManager;
+
+	@Inject
 	GennyCache cache;
 
 	GennyToken serviceToken;
@@ -109,7 +114,8 @@ public class TopologyProducer {
 		// Init Utility Objects
 		beUtils = new BaseEntityUtils(serviceToken);
 
-		// Establish connection to cache and init utilities
+		// Establish connection to DB and cache, and init utilities
+		DatabaseUtils.init(entityManager);
 		CacheUtils.init(cache);
 		QwandaUtils.init(serviceToken);
 		DefUtils.init(beUtils);
@@ -145,7 +151,6 @@ public class TopologyProducer {
 		String realm = null;
 		GennyToken userToken = null;
 		
-
 		if (data != null && !data.contains("Adaam")) {
 			try {
 				JsonObject json = jsonb.fromJson(data, JsonObject.class);
