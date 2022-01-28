@@ -25,7 +25,6 @@ import org.jboss.logging.Logger;
 import io.quarkus.runtime.StartupEvent;
 
 import life.genny.lauchy.live.data.InternalProducer;
-import life.genny.lauchy.model.Attribute2;
 import life.genny.qwandaq.models.GennyToken;
 import life.genny.qwandaq.Answer;
 import life.genny.qwandaq.attribute.Attribute;
@@ -126,17 +125,27 @@ public class TopologyProducer {
 	@Produces
 	public Topology buildTopology() {
 
-		Attribute2 attribute = new Attribute2();
-
 		// Read the input Kafka topic into a KStream instance.
 		StreamsBuilder builder = new StreamsBuilder();
 		builder
-			.stream("data", Consumed.with(Serdes.String(), Serdes.String())).mapValues(attribute::tidy)
+			.stream("data", Consumed.with(Serdes.String(), Serdes.String()))
+			.mapValues((k, v) -> tidy(v))
 			.filter((k, v) -> validate(v))
 			.peek((k, v) -> log.info("Forwarding valid message: " + v))
 			.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
 
 		return builder.build();
+	}
+
+	/**
+	* Helper function to tidy some values
+	*
+	* @param data
+	* @return
+	 */
+	public String tidy(String data) {
+
+		return data.replaceAll("Adamm", "Adam");
 	}
 
 	/**
@@ -146,9 +155,9 @@ public class TopologyProducer {
 	* @return
 	 */
 	public Boolean validate(String data) {
+
 		Boolean valid = true;
 		String uuid = null;
-		String realm = null;
 		GennyToken userToken = null;
 		
 		if (data != null && !data.contains("Adaam")) {
