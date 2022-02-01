@@ -129,6 +129,7 @@ public class TopologyProducer {
 		StreamsBuilder builder = new StreamsBuilder();
 		builder
 			.stream("data", Consumed.with(Serdes.String(), Serdes.String()))
+			.peek((k, v) -> log.info("Reveived message: " + v))
 			.mapValues((k, v) -> tidy(v))
 			.filter((k, v) -> validate(v))
 			.peek((k, v) -> log.info("Forwarding valid message: " + v))
