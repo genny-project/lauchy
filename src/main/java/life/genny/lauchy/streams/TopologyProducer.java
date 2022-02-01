@@ -132,7 +132,7 @@ public class TopologyProducer {
 			.peek((k, v) -> log.info("Reveived message: " + v))
 			.mapValues((k, v) -> tidy(v))
 			.filter((k, v) -> validate(v))
-			.peek((k, v) -> log.info("Forwarding valid message: " + v))
+			.peek((k, v) -> log.info("Forwarding valid message"))
 			.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
 
 		return builder.build();
