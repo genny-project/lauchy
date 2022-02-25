@@ -130,6 +130,7 @@ public class TopologyProducer {
 		builder
 			.stream("data", Consumed.with(Serdes.String(), Serdes.String()))
 			.peek((k, v) -> log.info("Reveived message: " + v))
+			.filter((k, v) -> (v != null))
 			.mapValues((k, v) -> tidy(v))
 			.filter((k, v) -> validate(v))
 			.peek((k, v) -> log.info("Forwarding valid message"))
@@ -161,122 +162,120 @@ public class TopologyProducer {
 		String uuid = null;
 		GennyToken userToken = null;
 		
-		if (data != null && !data.contains("Adaam")) {
-			try {
-				JsonObject json = jsonb.fromJson(data, JsonObject.class);
+		try {
 
-				String msgType = json.getString("msg_type");
-				String msgDataType = json.getString("data_type");
+			JsonObject json = jsonb.fromJson(data, JsonObject.class);
 
-				if ("DATA_MSG".equals(msgType) && ("Answer".equals(msgDataType))) {
+			String msgType = json.getString("msg_type");
+			String msgDataType = json.getString("data_type");
 
-					userToken = new GennyToken(json.getString("token"));
+			if ("DATA_MSG".equals(msgType) && ("Answer".equals(msgDataType))) {
 
-					JsonArray items = json.getJsonArray("items");
-					log.info(userToken);
-					QDataAnswerMessage answerMsg = jsonb.fromJson(data, QDataAnswerMessage.class);
+				userToken = new GennyToken(json.getString("token"));
 
-					if (!userToken.getToken().equals(answerMsg.getToken())) {
-						log.error("Message Token and userToken DO NOT Match for " + userToken.getEmail());
+				JsonArray items = json.getJsonArray("items");
+				log.info(userToken);
+				QDataAnswerMessage answerMsg = jsonb.fromJson(data, QDataAnswerMessage.class);
+
+				if (!userToken.getToken().equals(answerMsg.getToken())) {
+					log.error("Message Token and userToken DO NOT Match for " + userToken.getEmail());
+					valid = false;
+				}
+
+				for (Answer answer : answerMsg.getItems()) {
+
+					// TODO, check questionCode by fetching from questions 5
+					// TODO check askID by fetching from Tasks
+
+					if (!(userToken.getUserCode()).equals(answer.getSourceCode())) {
 						valid = false;
-					}
+					} else {
+						// check source code exists
+						BaseEntity sourceBe = null;
 
-					for (Answer answer : answerMsg.getItems()) {
+						sourceBe = beUtils.getBaseEntityByCode(answer.getSourceCode());
 
-						// TODO, check questionCode by fetching from questions 5
-						// TODO check askID by fetching from Tasks
+						log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
+						if (sourceBe != null) {
+							// Check Target exist
+							BaseEntity targetBe = beUtils.getBaseEntityByCode(answer.getTargetCode());
+							if (targetBe != null) {
 
-						if (!(userToken.getUserCode()).equals(answer.getSourceCode())) {
-							valid = false;
-						} else {
-							// check source code exists
-							BaseEntity sourceBe = null;
-
-							sourceBe = beUtils.getBaseEntityByCode(answer.getSourceCode());
-
-							log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
-							if (sourceBe != null) {
-								// Check Target exist
-								BaseEntity targetBe = beUtils.getBaseEntityByCode(answer.getTargetCode());
-								if (targetBe != null) {
-
-									BaseEntity defBe = DefUtils.getDEF(targetBe);
-									// check attribute code is allowed by targetDEF
-									if (defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
-										// Now validate values
-										Attribute attribute = QwandaUtils.getAttribute(answer.getAttributeCode());
-										if (attribute != null) {
-											DataType dataType = attribute.getDataType();
-											// HACK: TODO ACC - To send back an emoty LNK_PERSON for a bucket search
-											if ("LNK_PERSON".equals(answer.getAttributeCode())) {
-												if ("BKT_APPLICATIONS".equals(answer.getTargetCode())) {
-													if ("[]".equals(answer.getValue())) {
+								BaseEntity defBe = DefUtils.getDEF(targetBe);
+								// check attribute code is allowed by targetDEF
+								if (defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
+									// Now validate values
+									Attribute attribute = QwandaUtils.getAttribute(answer.getAttributeCode());
+									if (attribute != null) {
+										DataType dataType = attribute.getDataType();
+										// HACK: TODO ACC - To send back an emoty LNK_PERSON for a bucket search
+										if ("LNK_PERSON".equals(answer.getAttributeCode())) {
+											if ("BKT_APPLICATIONS".equals(answer.getTargetCode())) {
+												if ("[]".equals(answer.getValue())) {
 													// So send back a dummy empty value for the LNK_PERSON
-														targetBe.setValue(attribute, "[]");
-														QDataBaseEntityMessage responseMsg = new QDataBaseEntityMessage(targetBe);
-														responseMsg.setTotal(1L);
-														responseMsg.setReturnCount(1L);
-														responseMsg.setToken(userToken.getToken());
-														String jsonMsg= jsonb.toJson(responseMsg);
-													
-														producer.getToWebData().send(jsonMsg);
-														log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode()+" sent this json->"+jsonMsg);
-													}
+													targetBe.setValue(attribute, "[]");
+													QDataBaseEntityMessage responseMsg = new QDataBaseEntityMessage(targetBe);
+													responseMsg.setTotal(1L);
+													responseMsg.setReturnCount(1L);
+													responseMsg.setToken(userToken.getToken());
+													String jsonMsg= jsonb.toJson(responseMsg);
+
+													producer.getToWebData().send(jsonMsg);
+													log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode()+" sent this json->"+jsonMsg);
 												}
 											}
-											if ("PRI_ABN".equals(answer.getAttributeCode())) {
-												valid = isValidABN(answer.getValue());
-											} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
-												valid = isValidCreditCard(answer.getValue());
-											} else {
-												Boolean isAnyValid = false;
-												for (Validation validation : dataType.getValidationList()) {
-													// Now check the validation
-													String regex = validation.getRegex();
-													// TODO speedup by precompiling all validations
-													boolean regexOk = Pattern.compile(regex).matcher(answer.getValue())
-															.matches();
-													if (regexOk) {
-														isAnyValid = true;
-														log.info("Regex OK! [" + answer.getValue() + "] for regex "
-																+ regex);
-														break;
-													}
-													log.info("Regex failed! Att:[" + answer.getAttributeCode() + "]"
-															+ attribute.getDataType().getDttCode() + " ["
-															+ answer.getValue() + "] for regex " + regex + " ..."
-															+ validation.getErrormsg());
-												}
-												valid = isAnyValid;
-											}
+										}
+										if ("PRI_ABN".equals(answer.getAttributeCode())) {
+											valid = isValidABN(answer.getValue());
+										} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
+											valid = isValidCreditCard(answer.getValue());
 										} else {
-											valid = false;
-											log.error("AttributeCode" + answer.getAttributeCode() + " not existing "
-													+ defBe.getCode());
+											Boolean isAnyValid = false;
+											for (Validation validation : dataType.getValidationList()) {
+												// Now check the validation
+												String regex = validation.getRegex();
+												// TODO speedup by precompiling all validations
+												boolean regexOk = Pattern.compile(regex).matcher(answer.getValue())
+													.matches();
+												if (regexOk) {
+													isAnyValid = true;
+													log.info("Regex OK! [" + answer.getValue() + "] for regex "
+															+ regex);
+													break;
+												}
+												log.info("Regex failed! Att:[" + answer.getAttributeCode() + "]"
+														+ attribute.getDataType().getDttCode() + " ["
+														+ answer.getValue() + "] for regex " + regex + " ..."
+														+ validation.getErrormsg());
+											}
+											valid = isAnyValid;
 										}
 									} else {
 										valid = false;
-										log.error("AttributeCode" + answer.getAttributeCode() + " not allowed for "
+										log.error("AttributeCode" + answer.getAttributeCode() + " not existing "
 												+ defBe.getCode());
 									}
-
 								} else {
 									valid = false;
-									log.error("Target " + answer.getTargetCode() + " does not exist");
+									log.error("AttributeCode" + answer.getAttributeCode() + " not allowed for "
+											+ defBe.getCode());
 								}
+
 							} else {
 								valid = false;
-								log.error("Source " + answer.getSourceCode() + " does not exist");
+								log.error("Target " + answer.getTargetCode() + " does not exist");
 							}
+						} else {
+							valid = false;
+							log.error("Source " + answer.getSourceCode() + " does not exist");
 						}
 					}
 				}
-			} catch (Exception e) {
-
-				valid = false;
 			}
-
+		} catch (Exception e) {
+			valid = false;
 		}
+
 		if (!valid) {
 			uuid = userToken.getUuid();
 			log.info("BLACKLIST "+(enableBlacklist?"ON":"OFF")+" " + userToken.getEmail() + ":" + uuid);
