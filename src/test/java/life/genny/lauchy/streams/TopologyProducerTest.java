@@ -21,9 +21,6 @@ import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.junit.QuarkusTest;
 
-import static life.genny.lauchy.streams.TopologyProducer.DATA_TOPIC;
-import static life.genny.lauchy.streams.TopologyProducer.WEBDATA_TOPIC;
-
 /**
  * Testing of the Topology without a broker, using TopologyTestDriver
  */
@@ -47,8 +44,8 @@ public class TopologyProducerTest {
 		config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "dummy:1234");
 		testDriver = new TopologyTestDriver(topology, config);
 
-		data = testDriver.createInputTopic(DATA_TOPIC, new IntegerSerializer(), new StringSerializer());
-		webData = testDriver.createOutputTopic(WEBDATA_TOPIC, new IntegerDeserializer(), new StringDeserializer());
+		data = testDriver.createInputTopic("data", new IntegerSerializer(), new StringSerializer());
+		webData = testDriver.createOutputTopic("webdata", new IntegerDeserializer(), new StringDeserializer());
 	}
 
 	@AfterEach
