@@ -12,7 +12,6 @@ import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
-import javax.persistence.EntityManager;
 
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -24,7 +23,6 @@ import org.jboss.logging.Logger;
 
 import io.quarkus.runtime.StartupEvent;
 
-import life.genny.lauchy.live.data.InternalProducer;
 import life.genny.qwandaq.models.GennyToken;
 import life.genny.qwandaq.Answer;
 import life.genny.qwandaq.attribute.Attribute;
@@ -33,12 +31,10 @@ import life.genny.qwandaq.entity.BaseEntity;
 import life.genny.qwandaq.message.QDataAnswerMessage;
 import life.genny.qwandaq.message.QDataBaseEntityMessage;
 import life.genny.qwandaq.validation.Validation;
-import life.genny.qwandaq.data.GennyCache;
+import life.genny.serviceq.Service;
 import life.genny.qwandaq.utils.BaseEntityUtils;
-import life.genny.qwandaq.utils.CacheUtils;
-import life.genny.qwandaq.utils.DatabaseUtils;
 import life.genny.qwandaq.utils.DefUtils;
-import life.genny.qwandaq.utils.KeycloakUtils;
+import life.genny.qwandaq.utils.KafkaUtils;
 import life.genny.qwandaq.utils.QwandaUtils;
 
 @ApplicationScoped
@@ -46,79 +42,21 @@ public class TopologyProducer {
 
 	private static final Logger log = Logger.getLogger(TopologyProducer.class);
 
-	@ConfigProperty(name = "genny.show.values", defaultValue = "false")
-	Boolean showValues;
-	
+	Jsonb jsonb = JsonbBuilder.create();
+
 	@ConfigProperty(name = "genny.enable.blacklist", defaultValue = "true")
 	Boolean enableBlacklist;
 
-	@ConfigProperty(name = "genny.keycloak.url", defaultValue = "https://keycloak.gada.io")
-	String baseKeycloakUrl;
-
-	@ConfigProperty(name = "genny.keycloak.realm", defaultValue = "genny")
-	String keycloakRealm;
-
-	@ConfigProperty(name = "genny.service.username", defaultValue = "service")
-	String serviceUsername;
-
-	@ConfigProperty(name = "genny.service.password", defaultValue = "password")
-	String servicePassword;
-
-	@ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "https://keycloak.genny.life/auth/realms/genny")
-	String keycloakUrl;
-
-	@ConfigProperty(name = "genny.oidc.client-id", defaultValue = "backend")
-	String clientId;
-
-	@ConfigProperty(name = "genny.oidc.credentials.secret", defaultValue = "secret")
-	String secret;
-
-	@ConfigProperty(name = "genny.api.url", defaultValue = "http://alyson.genny.life:8280")
-	String apiUrl;
-
 	@Inject
-	InternalProducer producer;
-
-	@Inject
-	EntityManager entityManager;
-
-	@Inject
-	GennyCache cache;
-
-	GennyToken serviceToken;
-
-	BaseEntityUtils beUtils;
-
-	Jsonb jsonb = JsonbBuilder.create();
-
-	static String DATA_TOPIC = "data";
-	static String WEBDATA_TOPIC = "webdata";
+	Service service;
 
     void onStart(@Observes StartupEvent ev) {
 
-		if (showValues) {
-			log.info("service username :" + serviceUsername);
-			log.info("service password :" + servicePassword);
-			log.info("keycloakUrl      :" + keycloakUrl);
-			log.info("keycloak clientId:" + clientId);
-			log.info("keycloak secret  :" + secret);
-			log.info("keycloak realm   :" + keycloakRealm);
-			log.info("api Url          :" + apiUrl);
+		if (service.showValues()) {
 			log.info("Blacklist        :" + (enableBlacklist?"ON":"OFF"));
 		}
 
-		// Fetch our service token
-		serviceToken = KeycloakUtils.getToken(baseKeycloakUrl, keycloakRealm, clientId, secret, serviceUsername, servicePassword);
-
-		// Init Utility Objects
-		beUtils = new BaseEntityUtils(serviceToken);
-
-		// Establish connection to DB and cache, and init utilities
-		DatabaseUtils.init(entityManager);
-		CacheUtils.init(cache);
-		QwandaUtils.init(serviceToken);
-		DefUtils.init(beUtils);
-
+		service.fullServiceInit();
 		log.info("[*] Finished Topology Startup!");
     }
 
@@ -161,6 +99,7 @@ public class TopologyProducer {
 		Boolean valid = true;
 		String uuid = null;
 		GennyToken userToken = null;
+		BaseEntityUtils beUtils = service.getBeUtils();
 		
 		try {
 
@@ -172,9 +111,10 @@ public class TopologyProducer {
 			if ("DATA_MSG".equals(msgType) && ("Answer".equals(msgDataType))) {
 
 				userToken = new GennyToken(json.getString("token"));
+				beUtils.setGennyToken(userToken);
+				log.info(userToken);
 
 				JsonArray items = json.getJsonArray("items");
-				log.info(userToken);
 				QDataAnswerMessage answerMsg = jsonb.fromJson(data, QDataAnswerMessage.class);
 
 				if (!userToken.getToken().equals(answerMsg.getToken())) {
@@ -220,7 +160,7 @@ public class TopologyProducer {
 													responseMsg.setToken(userToken.getToken());
 													String jsonMsg= jsonb.toJson(responseMsg);
 
-													producer.getToWebData().send(jsonMsg);
+													KafkaUtils.writeMsg("webdata", jsonMsg);
 													log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode()+" sent this json->"+jsonMsg);
 												}
 											}
@@ -283,7 +223,7 @@ public class TopologyProducer {
 				if (!enableBlacklist) {
 					valid = true;
 				} else {
-					producer.getToBlacklists().send(uuid);
+					KafkaUtils.writeMsg("blacklist", uuid);
 				}
 			} catch (Exception e) {
 				log.error("Could not add uuid to blacklist api " + uuid);
