@@ -56,6 +56,7 @@ public class TopologyProducer {
 			log.info("Blacklist        :" + (enableBlacklist?"ON":"OFF"));
 		}
 
+		log.info("Initializing ServiceQ Services");
 		service.fullServiceInit();
 		log.info("[*] Finished Topology Startup!");
     }
