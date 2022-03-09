@@ -28,6 +28,7 @@ import life.genny.qwandaq.Answer;
 import life.genny.qwandaq.attribute.Attribute;
 import life.genny.qwandaq.datatype.DataType;
 import life.genny.qwandaq.entity.BaseEntity;
+import life.genny.qwandaq.exception.BadDataException;
 import life.genny.qwandaq.message.QDataAnswerMessage;
 import life.genny.qwandaq.message.QDataBaseEntityMessage;
 import life.genny.qwandaq.validation.Validation;
@@ -91,147 +92,180 @@ public class TopologyProducer {
 	/**
 	* Function for validating a data message.
 	*
-	* @param data
-	* @return
+	* @param data the data to validate
+	* @return Boolean
 	 */
 	public Boolean validate(String data) {
 
-		Boolean valid = true;
-		String uuid = null;
-		GennyToken userToken = null;
 		BaseEntityUtils beUtils = service.getBeUtils();
+		QDataAnswerMessage msg = null;
 		
 		try {
-
-			JsonObject json = jsonb.fromJson(data, JsonObject.class);
-
-			String msgType = json.getString("msg_type");
-			String msgDataType = json.getString("data_type");
-
-			if ("DATA_MSG".equals(msgType) && ("Answer".equals(msgDataType))) {
-
-				userToken = new GennyToken(json.getString("token"));
-				beUtils.setGennyToken(userToken);
-				log.info(userToken);
-
-				JsonArray items = json.getJsonArray("items");
-				QDataAnswerMessage answerMsg = jsonb.fromJson(data, QDataAnswerMessage.class);
-
-				if (!userToken.getToken().equals(answerMsg.getToken())) {
-					log.error("Message Token and userToken DO NOT Match for " + userToken.getEmail());
-					valid = false;
-				}
-
-				for (Answer answer : answerMsg.getItems()) {
-
-					// TODO, check questionCode by fetching from questions 5
-					// TODO check askID by fetching from Tasks
-
-					if (!(userToken.getUserCode()).equals(answer.getSourceCode())) {
-						valid = false;
-					} else {
-						// check source code exists
-						BaseEntity sourceBe = null;
-
-						sourceBe = beUtils.getBaseEntityByCode(answer.getSourceCode());
-
-						log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
-						if (sourceBe != null) {
-							// Check Target exist
-							BaseEntity targetBe = beUtils.getBaseEntityByCode(answer.getTargetCode());
-							if (targetBe != null) {
-
-								BaseEntity defBe = DefUtils.getDEF(targetBe);
-								// check attribute code is allowed by targetDEF
-								if (defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
-									// Now validate values
-									Attribute attribute = QwandaUtils.getAttribute(answer.getAttributeCode());
-									if (attribute != null) {
-										DataType dataType = attribute.getDataType();
-										// HACK: TODO ACC - To send back an emoty LNK_PERSON for a bucket search
-										if ("LNK_PERSON".equals(answer.getAttributeCode())) {
-											if ("BKT_APPLICATIONS".equals(answer.getTargetCode())) {
-												if ("[]".equals(answer.getValue())) {
-													// So send back a dummy empty value for the LNK_PERSON
-													targetBe.setValue(attribute, "[]");
-													QDataBaseEntityMessage responseMsg = new QDataBaseEntityMessage(targetBe);
-													responseMsg.setTotal(1L);
-													responseMsg.setReturnCount(1L);
-													responseMsg.setToken(userToken.getToken());
-													String jsonMsg= jsonb.toJson(responseMsg);
-
-													KafkaUtils.writeMsg("webdata", jsonMsg);
-													log.info("Detected cleared BKT_APPLICATIONS search from "+userToken.getEmailUserCode()+" sent this json->"+jsonMsg);
-												}
-											}
-										}
-										if ("PRI_ABN".equals(answer.getAttributeCode())) {
-											valid = isValidABN(answer.getValue());
-										} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
-											valid = isValidCreditCard(answer.getValue());
-										} else {
-											Boolean isAnyValid = false;
-											for (Validation validation : dataType.getValidationList()) {
-												// Now check the validation
-												String regex = validation.getRegex();
-												// TODO speedup by precompiling all validations
-												boolean regexOk = Pattern.compile(regex).matcher(answer.getValue())
-													.matches();
-												if (regexOk) {
-													isAnyValid = true;
-													log.info("Regex OK! [" + answer.getValue() + "] for regex "
-															+ regex);
-													break;
-												}
-												log.info("Regex failed! Att:[" + answer.getAttributeCode() + "]"
-														+ attribute.getDataType().getDttCode() + " ["
-														+ answer.getValue() + "] for regex " + regex + " ..."
-														+ validation.getErrormsg());
-											}
-											valid = isAnyValid;
-										}
-									} else {
-										valid = false;
-										log.error("AttributeCode" + answer.getAttributeCode() + " not existing "
-												+ defBe.getCode());
-									}
-								} else {
-									valid = false;
-									log.error("AttributeCode" + answer.getAttributeCode() + " not allowed for "
-											+ defBe.getCode());
-								}
-
-							} else {
-								valid = false;
-								log.error("Target " + answer.getTargetCode() + " does not exist");
-							}
-						} else {
-							valid = false;
-							log.error("Source " + answer.getSourceCode() + " does not exist");
-						}
-					}
-				}
-			}
+			msg = jsonb.fromJson(data, QDataAnswerMessage.class);
 		} catch (Exception e) {
-			valid = false;
+			log.errorv("Json could not be cast to QDataAnswerMessage: {}", data);
+			return false;
 		}
 
-		if (!valid) {
-			uuid = userToken.getUuid();
-			log.info("BLACKLIST "+(enableBlacklist?"ON":"OFF")+" " + userToken.getEmail() + ":" + uuid);
-			try {
-				if (!enableBlacklist) {
-					valid = true;
-				} else {
-					KafkaUtils.writeMsg("blacklist", uuid);
-				}
-			} catch (Exception e) {
-				log.error("Could not add uuid to blacklist api " + uuid);
+		// create GennyToken from token in message
+		String token = msg.getToken();
+		GennyToken userToken = null;
+
+		try {
+			userToken = new GennyToken(token);
+		} catch (Exception e) {
+			log.errorv("Invalid Token: {}", token);
+			return false;
+		}
+
+		beUtils.setGennyToken(userToken);
+		log.info(userToken);
+
+		// check that token matches userToken
+		if (!userToken.getToken().equals(msg.getToken())) {
+			log.errorv("Message Token and userToken DO NOT Match for {}", userToken.getEmail());
+			return blacklist(userToken);
+		}
+
+		for (Answer answer : msg.getItems()) {
+
+			// TODO: check questionCode by fetching from Questions 
+			// TODO: check askID by fetching from Tasks
+
+			// check that user is the source of message
+			if (!(userToken.getUserCode()).equals(answer.getSourceCode())) {
+				log.errorv("UserCode {} does not match answer source {}", userToken.getUserCode(), answer.getSourceCode());
+				return blacklist(userToken);
 			}
 
+			// check source entity exists
+			BaseEntity sourceBe = beUtils.getBaseEntityByCode(answer.getSourceCode());
+			if (sourceBe == null) {
+				log.errorv("Source {} does not exist", answer.getSourceCode());
+				return blacklist(userToken);
+			}
+			log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
+
+			// check target entity exist
+			BaseEntity targetBe = beUtils.getBaseEntityByCode(answer.getTargetCode());
+			if (targetBe == null) {
+				log.error("Target " + answer.getTargetCode() + " does not exist");
+				return blacklist(userToken);
+			}
+
+			// check DEF was found for target
+			BaseEntity defBe = DefUtils.getDEF(targetBe);
+			if (defBe == null ) {
+				log.errorv("DEF entity not found for {}", targetBe.getCode());
+				return blacklist(userToken);
+			}
+
+			// check attribute code is allowed by targetDEF
+			if (!defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
+				log.errorv("AttributeCode {} not allowed for {}", answer.getAttributeCode(), defBe.getCode());
+				return blacklist(userToken);
+			}
+
+			// check attribute exists
+			Attribute attribute = QwandaUtils.getAttribute(answer.getAttributeCode());
+			if (attribute == null) {
+				log.errorv("AttributeCode {} does not existing", answer.getAttributeCode());
+				return blacklist(userToken);
+			}
+
+			DataType dataType = attribute.getDataType();
+
+			// HACK: TODO ACC - To send back an empty LNK_PERSON for a bucket search
+			if (("LNK_PERSON".equals(answer.getAttributeCode()))
+					&& ("BKT_APPLICATIONS".equals(answer.getTargetCode()))
+					&& ("[]".equals(answer.getValue()))) {
+
+				// So send back a dummy empty value for the LNK_PERSON
+				try {
+					targetBe.setValue(attribute, "[]");
+
+					QDataBaseEntityMessage responseMsg = new QDataBaseEntityMessage(targetBe);
+					responseMsg.setTotal(1L);
+					responseMsg.setReturnCount(1L);
+					responseMsg.setToken(userToken.getToken());
+
+					KafkaUtils.writeMsg("webdata", responseMsg);
+					log.info("Detected cleared BKT_APPLICATIONS search from " + userToken.getEmailUserCode());
+
+				} catch (BadDataException e) {
+					e.printStackTrace();
+				}
+			}
+
+			if ("PRI_ABN".equals(answer.getAttributeCode())) {
+
+				if (!isValidABN(answer.getValue())) {
+					log.errorv("invalid ABN {}", answer.getValue());
+					return blacklist(userToken);
+				}
+
+			} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
+
+				if (!isValidCreditCard(answer.getValue())) {
+					log.errorv("invalid Credit Card {}", answer.getValue());
+					return blacklist(userToken);
+				}
+
+			} else {
+
+				Boolean isAnyValid = false;
+
+				for (Validation validation : dataType.getValidationList()) {
+
+					// Now check the validation
+					String regex = validation.getRegex();
+					boolean regexOk = Pattern.compile(regex).matcher(answer.getValue()).matches();
+
+					if (regexOk) {
+						isAnyValid = true;
+						log.infov("Regex OK! [{}] for regex {}", answer.getValue(), regex);
+						break;
+					}
+					log.errorv("Regex failed! Att: [{}] {} [{}] for regex {} ... {}",
+							answer.getAttributeCode(),
+							attribute.getDataType().getDttCode(),
+							answer.getValue(),
+							regex,
+							validation.getErrormsg());
+				}
+
+				// blacklist if none of the regex match
+				if (!isAnyValid) {
+					return blacklist(userToken);
+				}
+			}
 		}
-		return valid;
+
+		return true;
 	}
+
+	/**
+	* Blacklist a user if blacklists are enabled, and return 
+	* a Boolean representing whether or not the messsage 
+	* should be considered valid.
+	*
+	* @param userToken the userToken of the user to blacklist
+	* @return Boolean
+	 */
+	public Boolean blacklist(GennyToken userToken) {
+
+		String uuid = userToken.getUuid();
+
+		log.info("BLACKLIST "+(enableBlacklist?"ON":"OFF")+" " + userToken.getEmail() + ":" + uuid);
+
+		if (!enableBlacklist) {
+			return true;
+		}
+
+		KafkaUtils.writeMsg("blacklist", uuid);
+		return false;
+	}
+
 
 	/**
 	* Helper function for checking ABN validity.
