@@ -105,6 +105,7 @@ public class TopologyProducer {
 			msg = jsonb.fromJson(data, QDataAnswerMessage.class);
 		} catch (Exception e) {
 			log.error("Json could not be cast to QDataAnswerMessage: " + data);
+			e.printStackTrace();
 			return false;
 		}
 
