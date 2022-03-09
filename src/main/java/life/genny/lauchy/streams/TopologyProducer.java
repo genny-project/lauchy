@@ -99,18 +99,10 @@ public class TopologyProducer {
 	public Boolean validate(String data) {
 
 		BaseEntityUtils beUtils = service.getBeUtils();
-		QDataAnswerMessage msg = null;
-		
-		try {
-			msg = jsonb.fromJson(data, QDataAnswerMessage.class);
-		} catch (Exception e) {
-			log.error("Json could not be cast to QDataAnswerMessage: " + data);
-			e.printStackTrace();
-			return false;
-		}
+		JsonObject json = jsonb.fromJson(data, JsonObject.class);
 
 		// create GennyToken from token in message
-		String token = msg.getToken();
+		String token = json.getString("token");
 		GennyToken userToken = null;
 
 		try {
@@ -124,12 +116,16 @@ public class TopologyProducer {
 		log.info(userToken);
 
 		// check that token matches userToken
-		if (!userToken.getToken().equals(msg.getToken())) {
+		if (!userToken.getToken().equals(token)) {
 			log.errorv("Message Token and userToken DO NOT Match for {}", userToken.getEmail());
 			return blacklist(userToken);
 		}
 
-		for (Answer answer : msg.getItems()) {
+		JsonArray items = json.getJsonArray("items");
+
+		for (int i = 0; i < items.size(); i++) {
+
+			Answer answer = jsonb.fromJson(items.get(i).toString(), Answer.class);
 
 			// TODO: check questionCode by fetching from Questions 
 			// TODO: check askID by fetching from Tasks
