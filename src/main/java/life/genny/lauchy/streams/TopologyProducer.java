@@ -132,14 +132,15 @@ public class TopologyProducer {
 
 			// check that user is the source of message
 			if (!(userToken.getUserCode()).equals(answer.getSourceCode())) {
-				log.errorv("UserCode {} does not match answer source {}", userToken.getUserCode(), answer.getSourceCode());
+				// log.errorv("UserCode {} does not match answer source {}", userToken.getUserCode(), answer.getSourceCode());
+				log.error("UserCode " + userToken.getUserCode() + " does not match answer source " + answer.getSourceCode());
 				return blacklist(userToken);
 			}
 
 			// check source entity exists
 			BaseEntity sourceBe = beUtils.getBaseEntityByCode(answer.getSourceCode());
 			if (sourceBe == null) {
-				log.errorv("Source {} does not exist", answer.getSourceCode());
+				log.error("Source " + answer.getSourceCode() + " does not exist");
 				return blacklist(userToken);
 			}
 			log.info("Source = " + sourceBe.getCode() + ":" + sourceBe.getName());
@@ -154,20 +155,23 @@ public class TopologyProducer {
 			// check DEF was found for target
 			BaseEntity defBe = DefUtils.getDEF(targetBe);
 			if (defBe == null ) {
-				log.errorv("DEF entity not found for {}", targetBe.getCode());
+				// log.errorv("DEF entity not found for {}", targetBe.getCode());
+				log.error("DEF entity not found for " + targetBe.getCode());
 				return blacklist(userToken);
 			}
 
 			// check attribute code is allowed by targetDEF
 			if (!defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
-				log.errorv("AttributeCode {} not allowed for {}", answer.getAttributeCode(), defBe.getCode());
+				// log.errorv("AttributeCode {} not allowed for {}", answer.getAttributeCode(), defBe.getCode());
+				log.error("AttributeCode " + answer.getAttributeCode() + " not allowed for " + defBe.getCode());
 				return blacklist(userToken);
 			}
 
 			// check attribute exists
 			Attribute attribute = QwandaUtils.getAttribute(answer.getAttributeCode());
 			if (attribute == null) {
-				log.errorv("AttributeCode {} does not existing", answer.getAttributeCode());
+				// log.errorv("AttributeCode {} does not existing", answer.getAttributeCode());
+				log.error("AttributeCode " + answer.getAttributeCode() + " does not existing");
 				return blacklist(userToken);
 			}
 
@@ -198,14 +202,16 @@ public class TopologyProducer {
 			if ("PRI_ABN".equals(answer.getAttributeCode())) {
 
 				if (!isValidABN(answer.getValue())) {
-					log.errorv("invalid ABN {}", answer.getValue());
+					// log.errorv("invalid ABN {}", answer.getValue());
+					log.error("invalid ABN " + answer.getValue());
 					return blacklist(userToken);
 				}
 
 			} else if ("PRI_CREDITCARD".equals(answer.getAttributeCode())) {
 
 				if (!isValidCreditCard(answer.getValue())) {
-					log.errorv("invalid Credit Card {}", answer.getValue());
+					// log.errorv("invalid Credit Card {}", answer.getValue());
+					log.error("invalid Credit Card " + answer.getValue());
 					return blacklist(userToken);
 				}
 
@@ -225,12 +231,13 @@ public class TopologyProducer {
 						log.info("Regex OK! [ " + answer.getValue() + " ] for regex " + regex);
 						break;
 					}
-					log.errorv("Regex failed! Att: [{}] {} [{}] for regex {} ... {}",
-							answer.getAttributeCode(),
-							attribute.getDataType().getDttCode(),
-							answer.getValue(),
-							regex,
-							validation.getErrormsg());
+					// log.errorv("Regex failed! Att: [{}] {} [{}] for regex {} ... {}",
+					// 		answer.getAttributeCode(),
+					// 		attribute.getDataType().getDttCode(),
+					// 		answer.getValue(),
+					// 		regex,
+					// 		validation.getErrormsg());
+					log.error("Regex failed! " + regex + " ... " + validation.getErrormsg());
 				}
 
 				// blacklist if none of the regex match
