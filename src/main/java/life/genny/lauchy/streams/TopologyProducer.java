@@ -41,7 +41,7 @@ import life.genny.qwandaq.utils.QwandaUtils;
 @ApplicationScoped
 public class TopologyProducer {
 
-	private static final Logger log = Logger.getLogger(TopologyProducer.class);
+	static Logger log = Logger.getLogger(TopologyProducer.class);
 
 	Jsonb jsonb = JsonbBuilder.create();
 
@@ -115,7 +115,7 @@ public class TopologyProducer {
 		try {
 			userToken = new GennyToken(token);
 		} catch (Exception e) {
-			log.errorv("Invalid Token: {}", token);
+			log.error("Invalid Token: " + token);
 			return false;
 		}
 
