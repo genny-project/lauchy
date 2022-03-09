@@ -104,7 +104,7 @@ public class TopologyProducer {
 		try {
 			msg = jsonb.fromJson(data, QDataAnswerMessage.class);
 		} catch (Exception e) {
-			log.errorv("Json could not be cast to QDataAnswerMessage: {}", data);
+			log.error("Json could not be cast to QDataAnswerMessage: " + data);
 			return false;
 		}
 
@@ -115,7 +115,7 @@ public class TopologyProducer {
 		try {
 			userToken = new GennyToken(token);
 		} catch (Exception e) {
-			log.error("Invalid Token: " + token);
+			log.errorv("Invalid Token: {}", token);
 			return false;
 		}
 
