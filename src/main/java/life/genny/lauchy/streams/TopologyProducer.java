@@ -221,7 +221,8 @@ public class TopologyProducer {
 
 					if (regexOk) {
 						isAnyValid = true;
-						log.infov("Regex OK! [{}] for regex {}", answer.getValue(), regex);
+						// log.infov("Regex OK! [{}] for regex {}", answer.getValue().toString(), regex);
+						log.info("Regex OK! [ " + answer.getValue() + " ] for regex " + regex);
 						break;
 					}
 					log.errorv("Regex failed! Att: [{}] {} [{}] for regex {} ... {}",
