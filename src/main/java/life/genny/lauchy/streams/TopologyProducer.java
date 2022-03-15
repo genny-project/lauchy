@@ -216,13 +216,20 @@ public class TopologyProducer {
 				}
 
 			} else {
-
 				Boolean isAnyValid = false;
+				if(answer.getValue() == null) {
+					// TODO: Confirm this with Jasper tomorrow (16/03/2022). Seems kinda whack?
+					log.warn("Received a null answer for: " + answer.getAttributeCode());
+					log.warn("User: " + userToken.getUserCode());
+					isAnyValid = true;
+					break;
+				}
 
 				for (Validation validation : dataType.getValidationList()) {
 
 					// Now check the validation
 					String regex = validation.getRegex();
+					log.info("Answer Value: " + answer.getValue());
 					boolean regexOk = Pattern.compile(regex).matcher(answer.getValue()).matches();
 
 					if (regexOk) {
