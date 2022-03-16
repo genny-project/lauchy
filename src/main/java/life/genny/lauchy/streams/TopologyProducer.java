@@ -217,12 +217,12 @@ public class TopologyProducer {
 
 			} else {
 				Boolean isAnyValid = false;
-				if(answer.getValue() == null) {
-					// TODO: Confirm this with Jasper tomorrow (16/03/2022). Seems kinda whack?
-					log.warn("Received a null answer for: " + answer.getAttributeCode());
-					log.warn("User: " + userToken.getUserCode());
+
+				// check the answer field and allow through if null
+				if (answer.getValue() == null) {
+					log.warn("Received a null answer field from: " + userToken.getUserCode() + ", for: " + answer.getAttributeCode());
 					isAnyValid = true;
-					break;
+					continue;
 				}
 
 				for (Validation validation : dataType.getValidationList()) {
