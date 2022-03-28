@@ -295,12 +295,22 @@ public class TopologyProducer {
 		}
 		final int[] weights = { 10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 };
 		// split abn number string by digits to get int array
-		int[] abnDigits = Stream.of(abnCode.split("\\B")).mapToInt(Integer::parseInt).toArray();
-		// reduce by applying weight[index] * abnDigits[index] (NOTE: substract 1 for
-		// the first digit in abn number)
-		int sum = IntStream.range(0, weights.length).reduce(0,
-				(total, idx) -> total + weights[idx] * (idx == 0 ? abnDigits[idx] - 1 : abnDigits[idx]));
-		return (sum % 89 == 0);
+		try { 
+			int[] abnDigits = Stream.of(abnCode.split("\\B")).mapToInt(Integer::parseInt).toArray();
+			// reduce by applying weight[index] * abnDigits[index] (NOTE: substract 1 for
+			// the first digit in abn number)
+			int sum = IntStream.range(0, weights.length).reduce(0,
+					(total, idx) -> total + weights[idx] * (idx == 0 ? abnDigits[idx] - 1 : abnDigits[idx]));
+			return (sum % 89 == 0);
+		} catch (NumberFormatException e) {
+			log.error("Attempted to parse valid ABN of: " + abnCode);
+			e.printStackTrace();
+			return false;
+		} catch (Exception e) {
+			log.error("Attempted to parse valid ABN of: " + abnCode);
+			e.printStackTrace();
+			return false;
+		}
 	}
 
 	/**
