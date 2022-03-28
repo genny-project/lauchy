@@ -302,8 +302,13 @@ public class TopologyProducer {
 			int sum = IntStream.range(0, weights.length).reduce(0,
 					(total, idx) -> total + weights[idx] * (idx == 0 ? abnDigits[idx] - 1 : abnDigits[idx]));
 			return (sum % 89 == 0);
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			log.error("Attempted to parse valid ABN of: " + abnCode);
+			e.printStackTrace();
+			return false;
+		} catch (Exception e) {
+			log.error("Attempted to parse valid ABN of: " + abnCode);
+			e.printStackTrace();
 			return false;
 		}
 	}
