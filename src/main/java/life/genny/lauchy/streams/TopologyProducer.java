@@ -51,16 +51,22 @@ public class TopologyProducer {
 	@Inject
 	Service service;
 
-    void onStart(@Observes StartupEvent ev) {
+	@Inject
+	DefUtils defUtils;
+
+	@Inject
+	QwandaUtils qwandaUtils;
+
+	void onStart(@Observes StartupEvent ev) {
 
 		if (service.showValues()) {
-			log.info("Blacklist        :" + (enableBlacklist?"ON":"OFF"));
+			log.info("Blacklist        :" + (enableBlacklist ? "ON" : "OFF"));
 		}
 
 		log.info("Initializing ServiceQ Services");
 		service.fullServiceInit();
 		log.info("[*] Finished Topology Startup!");
-    }
+	}
 
 	@Produces
 	public Topology buildTopology() {
@@ -68,22 +74,22 @@ public class TopologyProducer {
 		// Read the input Kafka topic into a KStream instance.
 		StreamsBuilder builder = new StreamsBuilder();
 		builder
-			.stream("data", Consumed.with(Serdes.String(), Serdes.String()))
-			.peek((k, v) -> log.info("Reveived message: " + v))
-			.filter((k, v) -> (v != null))
-			.mapValues((k, v) -> tidy(v))
-			.filter((k, v) -> validate(v))
-			.peek((k, v) -> log.info("Forwarding valid message"))
-			.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
+				.stream("data", Consumed.with(Serdes.String(), Serdes.String()))
+				.peek((k, v) -> log.info("Reveived message: " + v))
+				.filter((k, v) -> (v != null))
+				.mapValues((k, v) -> tidy(v))
+				.filter((k, v) -> validate(v))
+				.peek((k, v) -> log.info("Forwarding valid message"))
+				.to("valid_data", Produced.with(Serdes.String(), Serdes.String()));
 
 		return builder.build();
 	}
 
 	/**
-	* Helper function to tidy some values
-	*
-	* @param data
-	* @return
+	 * Helper function to tidy some values
+	 *
+	 * @param data
+	 * @return
 	 */
 	public String tidy(String data) {
 
@@ -91,10 +97,10 @@ public class TopologyProducer {
 	}
 
 	/**
-	* Function for validating a data message.
-	*
-	* @param data the data to validate
-	* @return Boolean
+	 * Function for validating a data message.
+	 *
+	 * @param data the data to validate
+	 * @return Boolean
 	 */
 	public Boolean validate(String data) {
 
@@ -127,13 +133,15 @@ public class TopologyProducer {
 
 			Answer answer = jsonb.fromJson(items.get(i).toString(), Answer.class);
 
-			// TODO: check questionCode by fetching from Questions 
+			// TODO: check questionCode by fetching from Questions
 			// TODO: check askID by fetching from Tasks
 
 			// check that user is the source of message
 			if (!(userToken.getUserCode()).equals(answer.getSourceCode())) {
-				// log.errorv("UserCode {} does not match answer source {}", userToken.getUserCode(), answer.getSourceCode());
-				log.error("UserCode " + userToken.getUserCode() + " does not match answer source " + answer.getSourceCode());
+				// log.errorv("UserCode {} does not match answer source {}",
+				// userToken.getUserCode(), answer.getSourceCode());
+				log.error("UserCode " + userToken.getUserCode() + " does not match answer source "
+						+ answer.getSourceCode());
 				return blacklist(userToken);
 			}
 
@@ -153,8 +161,8 @@ public class TopologyProducer {
 			}
 
 			// check DEF was found for target
-			BaseEntity defBe = DefUtils.getDEF(targetBe);
-			if (defBe == null ) {
+			BaseEntity defBe = defUtils.getDEF(targetBe);
+			if (defBe == null) {
 				// log.errorv("DEF entity not found for {}", targetBe.getCode());
 				log.error("DEF entity not found for " + targetBe.getCode());
 				return blacklist(userToken);
@@ -162,13 +170,14 @@ public class TopologyProducer {
 
 			// check attribute code is allowed by targetDEF
 			if (!defBe.containsEntityAttribute("ATT_" + answer.getAttributeCode())) {
-				// log.errorv("AttributeCode {} not allowed for {}", answer.getAttributeCode(), defBe.getCode());
+				// log.errorv("AttributeCode {} not allowed for {}", answer.getAttributeCode(),
+				// defBe.getCode());
 				log.error("AttributeCode " + answer.getAttributeCode() + " not allowed for " + defBe.getCode());
 				return blacklist(userToken);
 			}
 
 			// check attribute exists
-			Attribute attribute = QwandaUtils.getAttribute(answer.getAttributeCode());
+			Attribute attribute = qwandaUtils.getAttribute(answer.getAttributeCode());
 			if (attribute == null) {
 				// log.errorv("AttributeCode {} does not existing", answer.getAttributeCode());
 				log.error("AttributeCode " + answer.getAttributeCode() + " does not existing");
@@ -220,7 +229,8 @@ public class TopologyProducer {
 
 				// check the answer field and allow through if null
 				if (answer.getValue() == null) {
-					log.warn("Received a null answer field from: " + userToken.getUserCode() + ", for: " + answer.getAttributeCode());
+					log.warn("Received a null answer field from: " + userToken.getUserCode() + ", for: "
+							+ answer.getAttributeCode());
 					isAnyValid = true;
 					continue;
 				}
@@ -234,16 +244,17 @@ public class TopologyProducer {
 
 					if (regexOk) {
 						isAnyValid = true;
-						// log.infov("Regex OK! [{}] for regex {}", answer.getValue().toString(), regex);
+						// log.infov("Regex OK! [{}] for regex {}", answer.getValue().toString(),
+						// regex);
 						log.info("Regex OK! [ " + answer.getValue() + " ] for regex " + regex);
 						break;
 					}
 					// log.errorv("Regex failed! Att: [{}] {} [{}] for regex {} ... {}",
-					// 		answer.getAttributeCode(),
-					// 		attribute.getDataType().getDttCode(),
-					// 		answer.getValue(),
-					// 		regex,
-					// 		validation.getErrormsg());
+					// answer.getAttributeCode(),
+					// attribute.getDataType().getDttCode(),
+					// answer.getValue(),
+					// regex,
+					// validation.getErrormsg());
 					log.error("Regex failed! " + regex + " ... " + validation.getErrormsg());
 				}
 
@@ -258,18 +269,18 @@ public class TopologyProducer {
 	}
 
 	/**
-	* Blacklist a user if blacklists are enabled, and return 
-	* a Boolean representing whether or not the messsage 
-	* should be considered valid.
-	*
-	* @param userToken the userToken of the user to blacklist
-	* @return Boolean
+	 * Blacklist a user if blacklists are enabled, and return
+	 * a Boolean representing whether or not the messsage
+	 * should be considered valid.
+	 *
+	 * @param userToken the userToken of the user to blacklist
+	 * @return Boolean
 	 */
 	public Boolean blacklist(GennyToken userToken) {
 
 		String uuid = userToken.getUuid();
 
-		log.info("BLACKLIST "+(enableBlacklist?"ON":"OFF")+" " + userToken.getEmail() + ":" + uuid);
+		log.info("BLACKLIST " + (enableBlacklist ? "ON" : "OFF") + " " + userToken.getEmail() + ":" + uuid);
 
 		if (!enableBlacklist) {
 			return true;
@@ -279,14 +290,14 @@ public class TopologyProducer {
 		return false;
 	}
 
-
 	/**
-	* Helper function for checking ABN validity.
-	*
-	* Thanks to "Joker" from stackOverflow - https://stackoverflow.com/users/3949925/joker
-	*
-	* @param abnCode	The ABN to check
-	* @return			{@link Boolean}: ABN is valid
+	 * Helper function for checking ABN validity.
+	 *
+	 * Thanks to "Joker" from stackOverflow -
+	 * https://stackoverflow.com/users/3949925/joker
+	 *
+	 * @param abnCode The ABN to check
+	 * @return {@link Boolean}: ABN is valid
 	 */
 	public static Boolean isValidABN(final String abnCode) {
 
@@ -295,7 +306,7 @@ public class TopologyProducer {
 		}
 		final int[] weights = { 10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 };
 		// split abn number string by digits to get int array
-		try { 
+		try {
 			int[] abnDigits = Stream.of(abnCode.split("\\B")).mapToInt(Integer::parseInt).toArray();
 			// reduce by applying weight[index] * abnDigits[index] (NOTE: substract 1 for
 			// the first digit in abn number)
@@ -314,10 +325,10 @@ public class TopologyProducer {
 	}
 
 	/**
-	* Helper function to check if a credit card number is valid
-	*
-	* @param creditCardNumber	Credit card number to check
-	* @return			{@link Boolean}: Number is valid
+	 * Helper function to check if a credit card number is valid
+	 *
+	 * @param creditCardNumber Credit card number to check
+	 * @return {@link Boolean}: Number is valid
 	 */
 	public static boolean isValidCreditCard(String creditCardNumber) {
 		int sum = 0;
