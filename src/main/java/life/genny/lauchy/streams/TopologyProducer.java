@@ -104,6 +104,10 @@ public class TopologyProducer {
 	 */
 	public Boolean validate(String data) {
 
+		if ((data != null) && (data.contains("\"items\":[{}]"))) {
+			return false;
+		}
+
 		BaseEntityUtils beUtils = service.getBeUtils();
 		JsonObject json = jsonb.fromJson(data, JsonObject.class);
 
