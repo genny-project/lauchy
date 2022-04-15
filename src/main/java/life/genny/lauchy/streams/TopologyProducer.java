@@ -142,6 +142,8 @@ public class TopologyProducer {
 				// userToken.getUserCode(), answer.getSourceCode());
 				log.error("UserCode " + userToken.getUserCode() + " does not match answer source "
 						+ answer.getSourceCode());
+				log.error("The incoming data was [" + data + "]");
+				log.error("The number of items is " + items.size());
 				return blacklist(userToken);
 			}
 
